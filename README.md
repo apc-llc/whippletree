@@ -15,7 +15,7 @@ generation and volume rendering with concurrent irradiance caching.
 
 Markus Steinberger, Michael Kenzel, Pedro Boechat, Bernhard Kerbl, Mark Dokter, and Dieter Schmalstieg.
 Whippletree: Task-based Scheduling of Dynamic Workloads on the GPU.
-ACM Transactions on Graphics (Proc. SIGGRAPH Asia 2014), December 2014. To appear. [I'm an inline-style link with title](`http://data.icg.tugraz.at/~dieter/publications/Schmalstieg_286.pdf ".pdf")
+ACM Transactions on Graphics (Proc. SIGGRAPH Asia 2014), December 2014. To appear. \[ [.pdf](http://data.icg.tugraz.at/~dieter/publications/Schmalstieg_286.pdf ".pdf") \]
 
 ## Getting started
 
