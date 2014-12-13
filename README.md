@@ -19,6 +19,8 @@ ACM Transactions on Graphics (Proc. SIGGRAPH Asia 2014), December 2014. To appea
 
 ## Getting started
 
+*On Linux the code requires CUDA compiler with C++11 support (CUDA 6.5RC or later).*
+
 Clone the source tree and build basic examples:
 
 ```

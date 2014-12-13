@@ -1,7 +1,6 @@
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR})
 
-option(CUDA_BUILD_CC20 "Build with compute capability 2.0 support" FALSE)
 option(CUDA_BUILD_CC30 "Build with compute capability 3.0 support" FALSE)
 option(CUDA_BUILD_CC35 "Build with compute capability 3.5 support" FALSE)
 option(CUDA_BUILD_CC35_NODYN "Build with compute capability 3.5 support without dynamic parallelism" TRUE)
@@ -11,10 +10,22 @@ option(CUDA_BUILD_INFO "Build with kernel statistics and line numbers" TRUE)
 option(CUDA_BUILD_DEBUG "Build with kernel debug" FALSE)
 option(CUDA_ENABLE_CUPTI_INSTRUMENTATION "enable CUPTI instrumentation" TRUE)
 
-set(CUDA_NVCC_FLAGS "-use_fast_math;")
-if(CUDA_BUILD_CC20)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20;")
+if(CUDA_BUILD_CC35 OR CUDA_BUILD_CC50_NODYN)
+	find_package(CUDA_DLINK REQUIRED)
+else()
+	find_package(CUDA REQUIRED)
 endif()
+
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+set(CUDA_NVCC_FLAGS "-use_fast_math")
+
+# On Linux the code requires CUDA compiler with C++11 support (CUDA 6.5RC or later).
+if (NOT WIN32)
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-std=c++11")
+endif ()
+# CC 2.0 is always required for printf
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20;")
+
 if(CUDA_BUILD_CC30)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_30,code=sm_30;")
 endif()
@@ -35,16 +46,10 @@ if(CUDA_BUILD_DEBUG)
 endif()
 
 set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF CACHE BOOL "ATTACH")
-if (WIN32)
+if(WIN32)
 	set(CUDA_PROPAGATE_HOST_FLAGS ON CACHE BOOL "ATTACH")
-else ()
-	set(CUDA_PROPAGATE_HOST_FLAGS OFF CACHE BOOL "ATTACH")
-endif ()
-
-if(CUDA_BUILD_CC35 OR CUDA_BUILD_CC50_NODYN)
-	find_package(CUDA_DLINK REQUIRED)
 else()
-	find_package(CUDA REQUIRED)
+	set(CUDA_PROPAGATE_HOST_FLAGS OFF CACHE BOOL "ATTACH")
 endif()
 
 if (NOT WIN32)
