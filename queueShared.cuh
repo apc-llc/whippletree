@@ -564,8 +564,8 @@ public:
 
 
 
-template<class ProcInfo, int MaxSize, class QueueDescription, bool WarpOptimization>
-class SharedStaticQueueDirectDefinition : public SharedQueueElement<ProcInfo, QueueDescription::Proc, MaxSize, QueueDescription, QueueDescription, WarpOptimization, 0> { };
+//DM template<class ProcInfo, int MaxSize, class QueueDescription, bool WarpOptimization>
+//DM class SharedStaticQueueDirectDefinition : public SharedQueueElement<ProcInfo, QueueDescription::Proc, MaxSize, QueueDescription, QueueDescription, WarpOptimization, 0> { };
 
 
 template<class ProcInfo, int MaxSize, template<typename> class SharedQTraits, bool WarpOptimization>

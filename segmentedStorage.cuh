@@ -320,7 +320,7 @@ namespace SegmentedStorage
 
     static const int ElementsPerBlock = (SharedStorage::BlockSize - sizeof(uint)) / (sizeof(TAdditionalData) + TElementSize);
     typedef SegmentedQueueStorageBase<TQueueSize, ElementsPerBlock, SharedStorage> Base;
-    typedef typename Base::MyBlock<QueueData_T, QueueAddtionalData_T> MyBlock;
+//DM    typedef typename Base::MyBlock<QueueData_T, QueueAddtionalData_T> MyBlock;
 
     
 
@@ -396,7 +396,7 @@ namespace SegmentedStorage
 
     static const int ElementsPerBlock = (SharedStorage::BlockSize - sizeof(uint)) / (TElementSize);
     typedef SegmentedQueueStorageBase<TQueueSize, ElementsPerBlock, SharedStorage> Base;
-    typedef typename Base::MyBlock<QueueData_T, void> MyBlock;
+//DM    typedef typename Base::MyBlock<QueueData_T, void> MyBlock;
 
   public:
 

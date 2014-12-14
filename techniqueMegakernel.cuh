@@ -723,6 +723,8 @@ namespace Megakernel
   template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, int maxShared, bool LoadToShared, bool MultiElement>
   class Technique<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false> : public TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false>
   {
+    typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
+
     struct LaunchVisitor
     {
       int phase;
@@ -778,6 +780,8 @@ namespace Megakernel
   template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, int maxShared, bool LoadToShared, bool MultiElement>
   class Technique<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true> : public TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true>
   {
+    typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
+
     struct LaunchVisitor
     {
       int phase;
