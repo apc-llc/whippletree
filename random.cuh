@@ -36,7 +36,7 @@
 
 #if defined(__CUDACC__)
 
-namespace random
+namespace whippletree { namespace random
 {
   __device__ __inline__
   int warp_rand()
@@ -86,6 +86,6 @@ namespace random
     return res;
   }
 
-}
+} }
 
 #endif
