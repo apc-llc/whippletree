@@ -109,15 +109,15 @@ public:
   }
   static __device__ __inline__ int sync_count(int predicate)
   {
-    return Tools::syncthreads_count(predicate, 1, Threads);
+    return Tools::syncthreads_count(predicate, 1, ProcThreads);
   }
   static __device__ __inline__ int sync_and(int predicate)
   {
-    return Tools::syncthreads_and(predicate, 1, Threads);
+    return Tools::syncthreads_and(predicate, 1, ProcThreads);
   }
   static __device__ __inline__ int sync_or(int predicate)
   {
-    return Tools::syncthreads_or(predicate, 1, Threads);
+    return Tools::syncthreads_or(predicate, 1, ProcThreads);
   }
 };
 
