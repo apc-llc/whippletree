@@ -57,3 +57,11 @@ Three different procedures are defined using `proc0.cuh`, `proc1.cuh` and `proc2
 ```
 $ ./Example
 ```
+
+If launch fails, you may need to add code generation for Compute Capability of your GPU and recompile:
+
+```
+$ cmake -DCUDA_BUILD_CC30=TRUE ..
+$ make 
+```
+
