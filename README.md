@@ -27,7 +27,7 @@ Clone the source tree and build basic examples:
 
 ```
 $ git clone https://github.com/apc-llc/whippletree.git
-$ cd whippletree/example
+$ cd whippletree/examples/queuing
 $ mkdir build
 $ cd build
 $ cmake ..
@@ -42,7 +42,7 @@ Clone the source tree and build basic examples:
 
 ```
 > git clone https://github.com/apc-llc/whippletree.git
-> cd whippletree\example
+> cd whippletree\examples\queuing
 > mkdir build
 > cd build
 > cmake -DCUDA_TOOLKIT_ROOT_DIR="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5" ..
@@ -52,10 +52,10 @@ Then open `Example` VC++ project in Visual Studio and build `Example` target.
 
 ### Running
 
-Three different procedures are defined using `proc0.cuh`, `proc1.cuh` and `proc2.cuh`. The host control logic is found in `test.cu` and could be executed via `Example` binary:
+Three different procedures are defined using `proc0.cuh`, `proc1.cuh` and `proc2.cuh`. The host control logic is found in `test.cu` and could be executed via `queuing` binary:
 
 ```
-$ ./Example
+$ ./queuing
 ```
 
 If launch fails, you may need to add code generation for Compute Capability of your GPU and recompile:
