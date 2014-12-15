@@ -16,7 +16,12 @@ else()
 	find_package(CUDA REQUIRED)
 endif()
 
-set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF CACHE BOOL "ATTACH")
+if(WIN32)
+        set(CUDA_PROPAGATE_HOST_FLAGS ON CACHE BOOL "ATTACH")
+else()
+        set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+endif()
 set(CUDA_NVCC_FLAGS "-use_fast_math")
 
 # On Linux the code requires CUDA compiler with C++11 support (CUDA 6.5RC or later).
