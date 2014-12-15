@@ -34,6 +34,12 @@
 
 #include "random.cuh"
 
+#if (defined(_MSC_VER) && defined(_WIN64)) || defined(__LP64__)
+#define __RET_PTR   "l"
+#else
+#define __RET_PTR   "r"
+#endif
+
 template<class TAdditionalData>
 struct AdditionalDataInfo
 {
@@ -116,13 +122,13 @@ __device__ __inline__ void backoff(int num)
 
 __inline__ __device__ uint4& load(uint4& dest, const volatile uint4& src)
 {
-	asm("ld.volatile.global.v4.u32 {%0, %1, %2, %3}, [%4];" : "=r"(dest.x), "=r"(dest.y), "=r"(dest.z), "=r"(dest.w) : "l"(&src));
+	asm("ld.volatile.global.v4.u32 {%0, %1, %2, %3}, [%4];" : "=r"(dest.x), "=r"(dest.y), "=r"(dest.z), "=r"(dest.w) : __RET_PTR(&src));
 	return dest;
 }
 
 __inline__ __device__ uint2& load(uint2& dest, const volatile uint2& src)
 {
-	asm("ld.volatile.global.v2.u32 {%0, %1}, [%2];" : "=r"(dest.x), "=r"(dest.y) : "l"(&src));
+	asm("ld.volatile.global.v2.u32 {%0, %1}, [%2];" : "=r"(dest.x), "=r"(dest.y) : __RET_PTR(&src));
 	return dest;
 }
 
@@ -162,13 +168,13 @@ __inline__ __device__ uchar1& load(uchar1& dest, const volatile uchar1& src)
 
 __inline__ __device__ volatile uint4& store(volatile uint4& dest, const uint4& src)
 {
-	asm("st.volatile.global.v4.u32 [%0], {%1, %2, %3, %4};" : : "l"(&dest), "r"(src.x), "r"(src.y), "r"(src.z), "r"(src.w));
+	asm("st.volatile.global.v4.u32 [%0], {%1, %2, %3, %4};" : : __RET_PTR(&dest), "r"(src.x), "r"(src.y), "r"(src.z), "r"(src.w));
 	return dest;
 }
 
 __inline__ __device__ volatile uint2& store(volatile uint2& dest, const uint2& src)
 {
-	asm("st.volatile.global.v2.u32 [%0], {%1, %2};" : : "l"(&dest), "r"(src.x), "r"(src.y));
+	asm("st.volatile.global.v2.u32 [%0], {%1, %2};" : : __RET_PTR(&dest), "r"(src.x), "r"(src.y));
 	return dest;
 }
 
