@@ -440,16 +440,16 @@ public:
   { }
 
 
-  template<class Procedure>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure::ExpectedData data) 
+  template<class Procedure_>
+  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure_::ExpectedData data) 
   { 
-    return SQueueElementSelectAndForward<Procedure,MyProc,MyBaseQueue,NextSharedQueueElement> :: enqueue(sQueueStartPointer, myQ(sQueueStartPointer), data);
+    return SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: enqueue(sQueueStartPointer, myQ(sQueueStartPointer), data);
   }
 
-  template<uint ThreadsPerElement, class Procedure>
-  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure::ExpectedData* data) 
+  template<uint ThreadsPerElement, class Procedure_>
+  __inline__ __device__ static bool enqueue(char* sQueueStartPointer, typename Procedure_::ExpectedData* data) 
   { 
-    return SQueueElementSelectAndForward<Procedure,MyProc,MyBaseQueue,NextSharedQueueElement> :: template enqueue<ThreadsPerElement>(sQueueStartPointer, myQ(sQueueStartPointer), data);
+    return SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: template enqueue<ThreadsPerElement>(sQueueStartPointer, myQ(sQueueStartPointer), data);
   }
 
 
@@ -523,10 +523,10 @@ public:
   }
 
 
-  template<class Procedure>
+  template<class Procedure_>
   __inline__ __device__ static void finishRead(char* sQueueStartPointer, int id, int num)
   {   
-    SQueueElementSelectAndForward<Procedure,MyProc,MyBaseQueue,NextSharedQueueElement> :: finishRead(sQueueStartPointer, myQ(sQueueStartPointer), id, num);
+    SQueueElementSelectAndForward<Procedure_,MyProc,MyBaseQueue,NextSharedQueueElement> :: finishRead(sQueueStartPointer, myQ(sQueueStartPointer), id, num);
   }
 
   static std::string name()
@@ -590,7 +590,7 @@ class SharedStaticQueueTyping
 };
   
 
-template<class ProcedureInfo, template<class ProcedureInfo> class ExternalQueue, template<class ProcedureInfo> class SharedQueue, int SharedQueueFillupThreshold = 80, int GotoGlobalChance = 0>
+template<class ProcedureInfo, template<class /*ProcedureInfo*/> class ExternalQueue, template<class /*ProcedureInfo*/> class SharedQueue, int SharedQueueFillupThreshold = 80, int GotoGlobalChance = 0>
 class  SharedCombinerQueue : protected ExternalQueue<ProcedureInfo>
 {
   typedef ExternalQueue<ProcedureInfo> ExtQ;

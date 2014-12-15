@@ -127,8 +127,8 @@ template<template<class /*ProcedureInfo*/> class InternalQueue, class ProcedureI
 struct PhaseQueues
 {
 
-  template<class TProc, int Phase> 
-  class MyPhaseTraits : public ProcedureInfo:: template PhaseTraits<TProc, Phase > { };
+  template<class TProc, int Phase_> 
+  class MyPhaseTraits : public ProcedureInfo:: template PhaseTraits<TProc, Phase_ > { };
 
   typedef PhaseProcInfo< 
     typename ProcedureInfo:: template Priority<Phase>,
