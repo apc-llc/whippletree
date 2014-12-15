@@ -19,7 +19,9 @@ ACM Transactions on Graphics (Proc. SIGGRAPH Asia 2014), December 2014. To appea
 
 ## Getting started
 
-*On Linux the code requires CUDA compiler with C++11 support (CUDA 6.5RC or later).*
+### Building on Linux
+
+*On Linux the CUDA compiler with C++11 support (CUDA 6.5RC or later) and cmake are required.*
 
 Clone the source tree and build basic examples:
 
@@ -29,7 +31,29 @@ $ cd whippletree/example
 $ mkdir build
 $ cd build
 $ cmake ..
+$ make
 ```
 
-Three different procedures are defined using `proc0.cuh`, `proc1.cuh` and `proc2.cuh`. The host control logic is found in `test.cu`.
+### Building on Windows
 
+*On Windows Microsoft Visual Studio with C++11 support (e.g. version 13), cmake and CUDA Toolkit are required.*
+
+Clone the source tree and build basic examples:
+
+```
+> git clone https://github.com/apc-llc/whippletree.git
+> cd whippletree\example
+> mkdir build
+> cd build
+> cmake -DCUDA_TOOLKIT_ROOT_DIR="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5" ..
+```
+
+Then build & run using Visual Studio.
+
+### Running
+
+Three different procedures are defined using `proc0.cuh`, `proc1.cuh` and `proc2.cuh`. The host control logic is found in `test.cu` and could be executed via `Example` binary:
+
+```
+$ ./Example
+```
