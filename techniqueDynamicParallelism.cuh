@@ -139,7 +139,7 @@ namespace DynamicParallelism
     int procId;
     void* execData;
 
-    __device__ __inline__ InitLaunchVisitor(int pId, void* data) : procId(pid), execData(data) { }
+    __device__ __inline__ InitLaunchVisitor(int pid, void* data) : procId(pid), execData(data) { }
 
     template<class TProcedure, class CUSTOM>
     __device__ __inline__ bool visit()
@@ -266,6 +266,8 @@ namespace DynamicParallelism
 
     std::unique_ptr<Q, cuda_deleter> q;
 
+    int freq;
+
   public:
     Technique()
     {
@@ -277,6 +279,7 @@ namespace DynamicParallelism
       cudaGetDevice(&d);
       cudaDeviceProp prop;
       cudaGetDeviceProperties(&prop, d);
+      freq = static_cast<int>(static_cast<unsigned long long>(prop.clockRate)*1000/1024);
       if(prop.major*10 + prop.minor < 35)
       {
         std::cout << "Error Dynamic Parallelism requires CC3.5 or higher (only CC"<< prop.major << "." << prop.minor << " available on " << prop.name << std::endl;
