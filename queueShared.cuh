@@ -619,7 +619,7 @@ public:
   __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data) 
   {
     extern __shared__ uint s_data[];
-    if(GotoGlobalChance == 0 || random::warp_check(100-GotoGlobalChance))
+    if(GotoGlobalChance == 0 || whippletree::random::warp_check(100-GotoGlobalChance))
       if(SharedQ :: template enqueue<PROCEDURE>(reinterpret_cast<char*>(s_data), data))
       {
         //printf("went to shared queue\n");
@@ -632,7 +632,7 @@ public:
   __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data) 
   {
     extern __shared__ uint s_data[];
-    if(GotoGlobalChance == 0 || random::warp_check(100-GotoGlobalChance))
+    if(GotoGlobalChance == 0 || whippletree::random::warp_check(100-GotoGlobalChance))
       if(SharedQ :: template enqueue<threads, PROCEDURE>(reinterpret_cast<char*>(s_data), data))
       {
         //printf("went to shared queue\n");

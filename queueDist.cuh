@@ -470,7 +470,7 @@
 //    template<class PROCEDURE>
 //    __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData const& data) 
 //    {
-//      int qId = random::rand() % MaxBlocks;
+//      int qId = whippletree::random::rand() % MaxBlocks;
 //      return queues[qId]. template enqueue<PROCEDURE>(data);
 //    }
 //
@@ -510,7 +510,7 @@
 //    template<class PROCEDURE>
 //    __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData const& data) 
 //    {
-//      int qId = random::rand() % MaxBlocks;
+//      int qId = whippletree::random::rand() % MaxBlocks;
 //      return queues[qId]. template enqueue<PROCEDURE>(data);
 //    }
 //
@@ -582,7 +582,7 @@
 //    template<class PROCEDURE>
 //    __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData const& data) 
 //    {
-//      int qId = random::rand() % MaxBlocks;
+//      int qId = whippletree::random::rand() % MaxBlocks;
 //      return enqueue<PROCEDURE>(qId, data);
 //    }
 //
@@ -639,7 +639,7 @@
 //    template<class PROCEDURE>
 //    __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData const& data) 
 //    {
-//      int qId = random::rand() % MaxBlocks;
+//      int qId = whippletree::random::rand() % MaxBlocks;
 //      return enqueue<PROCEDURE, typename PROCEDURE::ExpectedData>(qId, data);
 //    }
 //
@@ -648,8 +648,8 @@
 //    __device__ bool enqueue(typename PROCEDURE::ExpectedData const& data) 
 //    {
 //      int qId = blockIdx.x % MaxBlocks;
-//      if(queues[qId].size() > DonateThreshold && random::warp_check(DonateProbability))
-//        qId = random::warp_rand() % MaxBlocks;
+//      if(queues[qId].size() > DonateThreshold && whippletree::random::warp_check(DonateProbability))
+//        qId = whippletree::random::warp_rand() % MaxBlocks;
 //      return enqueue<PROCEDURE,  typename PROCEDURE::ExpectedData>(qId, data);
 //    }
 //

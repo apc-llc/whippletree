@@ -106,7 +106,7 @@ __device__ __inline__ void backoff(int num)
 {
 
   volatile int local = threadIdx.x;
-  for(int i = 0; i < (random::rand() % Maxrand); ++i)
+  for(int i = 0; i < (whippletree::random::rand() % Maxrand); ++i)
   {
     local += num*threadIdx.x/(i+1234);
     __threadfence();

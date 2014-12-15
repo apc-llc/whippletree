@@ -702,7 +702,7 @@ public:
    template<class Visitor>
    __inline__ __device__ bool VisitAllRandStart(Visitor& visitor)
   {
-    int offset = random::rand() % TProcInfo :: NumProcedures;
+    int offset = whippletree::random::rand() % TProcInfo :: NumProcedures;
     RandVisitorBeg<Visitor> v(visitor, offset);
     if(VisitAll<RandVisitorBeg<Visitor> > (v))
       return true;
