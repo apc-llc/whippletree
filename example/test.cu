@@ -121,5 +121,5 @@ void runTest(int cuda_device)
   
   technique.insertIntoQueue<InitProc>(10);
   float t = technique.execute(0);
-  printf("runcompleted in %fs\n", t);
+  printf("run completed in %fs\n", t);
 }

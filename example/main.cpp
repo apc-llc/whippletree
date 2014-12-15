@@ -69,12 +69,19 @@
 void runTest(int device);
 int main(int argc, char** argv)
 {
- try
+  try
   {
     int cuda_device = argc > 1 ? atoi(argv[1]) : 0;
 
+    int count;
+    CUDA_CHECKED_CALL(cudaGetDeviceCount(&count));
+    if (!count)
+    {
+       std::cout << "No CUDA devices available" << std::endl;
+       return -1;
+    }
     cudaDeviceProp deviceProp;
-	cudaGetDeviceProperties(&deviceProp, cuda_device);
+    CUDA_CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, cuda_device));
     std::cout << "Using device: " << deviceProp.name << std::endl;
 
 	runTest(cuda_device);
