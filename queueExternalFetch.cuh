@@ -89,7 +89,7 @@ public:
    
     if(threadIdx.x < offset_take.y)
     {
-      readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, offset_take.x + threadIdx.x);
+      QueueStorage<TElementSize, void, TQueueSize>::readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, offset_take.x + threadIdx.x);
       __threadfence();
     }
     __syncthreads();
@@ -127,7 +127,7 @@ public:
         offset = atomicAdd((int*)&count, num);    
       __syncthreads();
       if(pos < num)
-        data  = readDataPointers(offset + pos);      
+        data  = QueueStorage<TElementSize, void, TQueueSize>::readDataPointers(offset + pos);
     }
     return num;
   }

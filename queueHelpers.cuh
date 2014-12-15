@@ -736,7 +736,7 @@ public:
     }
     __syncthreads();
     QueueStub::dequeueEnd(offset_take); 
-    storageFinishRead(offset_take);
+    TQueueStorage::storageFinishRead(offset_take);
     return offset_take.y;
   }
 };
@@ -806,12 +806,12 @@ public:
     uint2 offset_take = QueueStub::dequeuePrep(num);
     if(threadIdx.x < offset_take.y)
     {
-      readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, offset_take.x + threadIdx.x);
+      TQueueStorage::readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, offset_take.x + threadIdx.x);
       __threadfence();
     }
     __syncthreads();
     QueueStub::dequeueEnd(offset_take); 
-    storageFinishRead(offset_take);
+    TQueueStorage::storageFinishRead(offset_take);
     return offset_take.y;
   }
 };
@@ -944,6 +944,7 @@ protected:
 
   typedef typename StorageElementTyping<sizeof(TAdditionalData)>::Type AdditonalInfoElement;
   typedef typename StorageElementTyping<sizeof(uint2)>::Type OffsetData_T;
+  typedef MemAlloc<TAvgElementSize*TQueueSize> TMemAlloc;
 
   OffsetData_T volatile offsetStorage[TQueueSize];
 
@@ -969,8 +970,8 @@ public:
   __inline__ __device__ uint prepareData(T data, TAdditionalData additionalData)
   {
     uint p = allocOffset((sizeof(T) + AdditionalSize + ForceSize - 1)/ForceSize*ForceSize);
-    *reinterpret_cast<volatile AdditonalInfoElement*>(reinterpret_cast<volatile uint*>(dataAllocation) + p) = *reinterpret_cast<AdditonalInfoElement*>(&additionalData);
-    *reinterpret_cast<volatile typename StorageElementTyping<sizeof(T)>::Type*>(reinterpret_cast<volatile uint*>(dataAllocation) + p + AdditionalSize/sizeof(uint) ) = *reinterpret_cast<typename StorageElementTyping<sizeof(T)>::Type*>(&data);
+    *reinterpret_cast<volatile AdditonalInfoElement*>(reinterpret_cast<volatile uint*>(TMemAlloc::dataAllocation) + p) = *reinterpret_cast<AdditonalInfoElement*>(&additionalData);
+    *reinterpret_cast<volatile typename StorageElementTyping<sizeof(T)>::Type*>(reinterpret_cast<volatile uint*>(TMemAlloc::dataAllocation) + p + AdditionalSize/sizeof(uint) ) = *reinterpret_cast<typename StorageElementTyping<sizeof(T)>::Type*>(&data);
     return p;
   }
 
@@ -985,8 +986,8 @@ public:
       p = allocOffset((sizeof(T) + AdditionalSize + ForceSize - 1)/ForceSize*ForceSize);
     p = warpBroadcast<TThreadsPerElement>(p, 0);
     //p = __shfl(p, 0, TThreadsPerElement);    
-    multiWrite<TThreadsPerElement, TAdditionalData>(reinterpret_cast<volatile TAdditionalData*>(reinterpret_cast<volatile uint*>(dataAllocation) + p), &additionalData);
-    multiWrite<TThreadsPerElement, T>(reinterpret_cast<volatile T*>(reinterpret_cast<volatile uint*>(dataAllocation) + p + AdditionalSize/sizeof(uint)), data);
+    multiWrite<TThreadsPerElement, TAdditionalData>(reinterpret_cast<volatile TAdditionalData*>(reinterpret_cast<volatile uint*>(TMemAlloc::dataAllocation) + p), &additionalData);
+    multiWrite<TThreadsPerElement, T>(reinterpret_cast<volatile T*>(reinterpret_cast<volatile uint*>(TMemAlloc::dataAllocation) + p + AdditionalSize/sizeof(uint)), data);
 
     return p;
   }
@@ -1014,7 +1015,7 @@ public:
       writeData(*data,  additionalData, pos);
   }
 
-  __inline__ __device__ void readData(void* data, TAdditionalData* additionalData, uint pos)
+  /*__inline__ __device__ void readData(void* data, TAdditionalData* additionalData, uint pos)
   {
     OffsetData_T offsetData;
     pos = pos%TQueueSize;
@@ -1035,7 +1036,7 @@ public:
     *reinterpret_cast<AdditonalInfoElement*>(additionalData) = *reinterpret_cast<volatile AdditonalInfoElement*>(reinterpret_cast<volatile uint*>(dataAllocation) + offset.x);
     readStorageElement(data, reinterpret_cast<volatile uint*>(dataAllocation) + offset.x + AdditionalSize/sizeof(uint), offset.y);
    
-  }
+  }*/
   __inline__ __device__ void storageFinishRead(uint2 pos)
   {
      
@@ -1047,7 +1048,7 @@ public:
       offsetData  = offsetStorage[p];
       uint2 offset = *reinterpret_cast<uint2*>(&offsetData);
 
-      freeOffset(offset.x, offset.y);
+      TMemAlloc::freeOffset(offset.x, offset.y);
       if(TCheckSet)
       {
         __threadfence();
@@ -1066,6 +1067,7 @@ protected:
                                 TAvgElementSize > 4 ? 8 : 4;
   
   typedef typename StorageElementTyping<sizeof(uint2)>::Type OffsetData_T;
+  typedef MemAlloc<TAvgElementSize*TQueueSize> TMemAlloc;
 
   OffsetData_T volatile offsetStorage[TQueueSize];
 
@@ -1091,7 +1093,7 @@ public:
   __inline__ __device__ uint prepareData(T data)
   {
     uint p = allocOffset((sizeof(T) + ForceSize - 1)/ForceSize*ForceSize);
-    *reinterpret_cast<volatile typename StorageElementTyping<sizeof(T)>::Type*>(reinterpret_cast<volatile uint*>(dataAllocation) + p ) = *reinterpret_cast<typename StorageElementTyping<sizeof(T)>::Type*>(&data);
+    *reinterpret_cast<volatile typename StorageElementTyping<sizeof(T)>::Type*>(reinterpret_cast<volatile uint*>(TMemAlloc::dataAllocation) + p ) = *reinterpret_cast<typename StorageElementTyping<sizeof(T)>::Type*>(&data);
     return p;
   }
 
@@ -1106,7 +1108,7 @@ public:
       p = allocOffset((sizeof(T) + ForceSize - 1)/ForceSize*ForceSize);
     //p = __shfl(p, 0, TThreadsPerElement);
     p = warpBroadcast<TThreadsPerElement>(p, 0);
-    multiWrite<TThreadsPerElement, T>(reinterpret_cast<volatile T*>(reinterpret_cast<volatile uint*>(dataAllocation) + p), data);
+    multiWrite<TThreadsPerElement, T>(reinterpret_cast<volatile T*>(reinterpret_cast<volatile uint*>(TMemAlloc::dataAllocation) + p), data);
     return p;
   }
 
@@ -1133,7 +1135,7 @@ public:
       writeData(*data, pos);
   }
 
-  __inline__ __device__ void readData(void* data, uint pos)
+  /*__inline__ __device__ void readData(void* data, uint pos)
   {
     OffsetData_T offsetData;
     pos = pos%TQueueSize;  
@@ -1152,7 +1154,7 @@ public:
     }
     
     readStorageElement(data, reinterpret_cast<volatile uint*>(dataAllocation) + offset.x, offset.y);
-  }
+  }*/
   __inline__ __device__ void storageFinishRead(uint2 pos)
   {
      if(threadIdx.x < pos.y)
@@ -1162,7 +1164,7 @@ public:
       offsetData  = offsetStorage[p];
       uint2 offset = *reinterpret_cast<uint2*>(&offsetData);
 
-      freeOffset(offset.x, offset.y);
+      TMemAlloc::freeOffset(offset.x, offset.y);
       if(TCheckSet)
       {
         __threadfence();

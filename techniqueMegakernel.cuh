@@ -747,12 +747,14 @@ namespace Megakernel
   public:
     double execute(int phase = 0)
     {
-      preCall(false);
+      typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false> TCore;
+    
+      TCore::preCall(false);
 
-      LaunchVisitor v(q.get(), phase, blocks[phase], blockSize[phase], sharedMemSum[phase], sharedMem[phase]);
+      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase]);
       Q::template staticVisit<LaunchVisitor>(v);
 
-      return postCall(false);
+      return TCore::postCall(false);
     }
   };
 
@@ -760,14 +762,19 @@ namespace Megakernel
   template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, int maxShared, bool LoadToShared, bool MultiElement>
   class Technique<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,true,false> : public TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,true,false>
   {
+    typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
+
   public:
     template<int Phase, int TimeLimitInKCycles>
     double execute()
     {
       typedef CurrentMultiphaseQueue<Q, Phase> ThisQ;
-      preCall(false);
-      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false> ><<<blocks[Phase], blockSize[Phase], sharedMemSum[Phase]>>>(q.get(), sharedMem[Phase], 0);
-      return postCall(false);
+
+      typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,true,false> TCore;
+
+      TCore::preCall(false);
+      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false> ><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase]>>>(TCore::q.get(), TCore::sharedMem[Phase], 0);
+      return TCore::postCall(false);
     }
 
     template<int Phase>
@@ -805,12 +812,14 @@ namespace Megakernel
   public:
     double execute(int phase = 0, double timelimitInMs = 0)
     {
-      preCall(false);
+      typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true> TCore;
+    
+      TCore::preCall(false);
 
-      LaunchVisitor v(q.get(),phase, blocks[phase], blockSize[phase], sharedMemSum[phase], sharedMem[phase], timelimitInMs/1000*freq);
+      LaunchVisitor v(TCore::q.get(),phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], timelimitInMs/1000*TCore::freq);
       Q::template staticVisit<LaunchVisitor>(v);
 
-      return postCall(false);
+      return TCore::postCall(false);
     }
   };
 

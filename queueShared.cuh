@@ -69,7 +69,7 @@ struct SharedBaseQueue
   }
   __inline__ __device__ int num() const
   {
-    return min(counter,NumElement);
+    return min(counter,NumElements);
   }
   __inline__ __device__ int count() const
   {
@@ -653,7 +653,7 @@ public:
   }
 
   template<bool MultiProcedure>
-  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxNum = -1)
+  __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxShared = -1)
   {
     extern __shared__ uint s_data[];
     int d = SharedQ :: dequeueSelected<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, SharedQueueFillupThreshold);
@@ -700,6 +700,7 @@ public:
   template<bool MultiProcedure>
   __inline__ __device__ int dequeueStartRead2(void*& data, int*& procId, int maxShared = -1)
   {
+    extern __shared__ uint s_data[];
     return ExtQ :: template dequeueStartRead<MultiProcedure>(reinterpret_cast<char*>(s_data), data, procId, maxShared);
   }
   template<bool MultiProcedure>
@@ -728,11 +729,11 @@ public:
   }
 
 
-  template<class PROCEDURE>
+  /*template<class PROCEDURE>
   __inline__ __device__ int reserveRead(int maxNum = -1)
   {
     return ExtQ :: template reserveRead <PROCEDURE> (data, procId, maxShared);
-  }
+  }*/
   template<class PROCEDURE>
   __inline__ __device__ int startRead(void*& data, int num)
   {

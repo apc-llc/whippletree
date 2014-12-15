@@ -448,29 +448,29 @@
       int cFront = 0;
       if(linId == 0)
       {
-        cFront = *((volatile uint*)(&front));
-        int cBack = *((volatile uint*)(&back))%QueueSize;
+        cFront = *((volatile uint*)(&Stub::front));
+        int cBack = *((volatile uint*)(&Stub::back))%Stub::QueueSize;
 
-        int thisSortEnd = lastSortEnd;
+        int thisSortEnd = Stub::lastSortEnd;
         //construct not ringbuffered
         if(cFront > cBack)
         {
-          cBack += QueueSize;
+          cBack += Stub::QueueSize;
           if(cBack > thisSortEnd)
-            thisSortEnd += QueueSize;
+            thisSortEnd += Stub::QueueSize;
         }
 
         //compute next sorting position
-        if(thisSortEnd == QueueSize || thisSortEnd < cFront)
+        if(thisSortEnd == Stub::QueueSize || thisSortEnd < cFront)
           thisSortEnd = cBack - (int)num;
         else
-          thisSortEnd = lastSortEnd - (num/2);
+          thisSortEnd = Stub::lastSortEnd - (num/2);
 
         //is there enough border?
-        int maxfill = thisSortEnd - (int)sortingMinBorder;
-        if(maxfill < cFront || count < (int)(256 + sortingMinBorder + num))
+        int maxfill = thisSortEnd - (int)Stub::sortingMinBorder;
+        if(maxfill < cFront || Stub::count < (int)(256 + Stub::sortingMinBorder + num))
         {
-          lastSortEnd = QueueSize;
+          Stub::lastSortEnd = Stub::QueueSize;
           sortStart = -1;
         }
         else
@@ -499,8 +499,8 @@
       //load in data
       for(uint i = linId; i < num; i += threads)
       {
-        uint elementId = (sortStart + i) % QueueSize;
-        while(locks[elementId] == 0)
+        uint elementId = (sortStart + i) % Stub::QueueSize;
+        while(Stub::locks[elementId] == 0)
           __threadfence();
        
         int addInfo;
@@ -520,22 +520,22 @@
       //check if still ok and enable fence
       if(linId == 0)
       {
-        hitSortingFence = false;
-        sortingFence = sortStart % QueueSize;
+        Stub::hitSortingFence = false;
+        Stub::sortingFence = sortStart % Stub::QueueSize;
         __threadfence();
-        int nFront = *((volatile uint*)(&front));
-        if(nFront < cFront) nFront += QueueSize;
+        int nFront = *((volatile uint*)(&Stub::front));
+        if(nFront < cFront) nFront += Stub::QueueSize;
 
-        int maxfill = sortStart - (int)sortingMinBorder/2;
+        int maxfill = sortStart - (int)Stub::sortingMinBorder/2;
         if(maxfill < nFront)
         {
           //outch not enough space left
-          sortingFence = QueueSize;
-          lastSortEnd = QueueSize;
+          Stub::sortingFence = Stub::QueueSize;
+          Stub::lastSortEnd = Stub::QueueSize;
           sortStart = -1;
         }
         else
-          lastSortEnd = sortStart;
+          Stub::lastSortEnd = sortStart;
 
         ////debug
         //if(sortStart < 0)
@@ -577,8 +577,8 @@
       Storage::readData((void*)(&dataOne), &addOne, s_data[linId]);
       Storage::readData((void*)(&dataTwo), &addTwo, s_data[linId + threads]);
       Tools::syncthreads(1, threads);
-      Storage::template writeData<QueueData_t>(dataOne, addOne, make_uint2((sortStart + linId) % QueueSize, 0));
-      Storage::template writeData<QueueData_t>(dataTwo, addTwo, make_uint2((sortStart + linId + threads) % QueueSize, 0));
+      Storage::template writeData<QueueData_t>(dataOne, addOne, make_uint2((sortStart + linId) % Stub::QueueSize, 0));
+      Storage::template writeData<QueueData_t>(dataTwo, addTwo, make_uint2((sortStart + linId + threads) % Stub::QueueSize, 0));
 
 
       //write out
@@ -604,16 +604,16 @@
       //unset fence
       if(linId == 0)
       {
-        sortingFence = QueueSize;
+        Stub::sortingFence = Stub::QueueSize;
         ////debug
         //printf("sorting done %d->%d queue: %d->%d, sorting: %d->%d (l: %d, s: %d, w: %d) %d\n", startLoad, endWrite, front, back, sortStart, sortStart+num, endLoad-startLoad, endSort-startSort, endWrite-endSort,hitSortingFence);
         //printf("sorting done queue: %d->%d, sorting: %d->%d\n",front, back, sortStart, sortStart+num);
 
-        if(hitSortingFence)
+        if(Stub::hitSortingFence)
         {
           //we need to increase the margin
-          sortingMinBorder += 64;
-          hitSortingFence = false;
+          Stub::sortingMinBorder += 64;
+          Stub::hitSortingFence = false;
         }
       }
       return true;
