@@ -48,7 +48,7 @@ Clone the source tree and build basic examples:
 > cmake -DCUDA_TOOLKIT_ROOT_DIR="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5" ..
 ```
 
-Then build & run using Visual Studio.
+Then open `Example` VC++ project in Visual Studio and build `Example` target.
 
 ### Running
 
