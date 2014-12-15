@@ -131,7 +131,7 @@ struct PhaseQueues
   class MyPhaseTraits : public ProcedureInfo:: template PhaseTraits<TProc, Phase > { };
 
   typedef PhaseProcInfo< 
-    ProcedureInfo:: template Priority<Phase>,
+    typename ProcedureInfo:: template Priority<Phase>,
     MyPhaseTraits, 
     ProcedureInfo, 
     Phase, 
@@ -450,7 +450,7 @@ public:
   class MyPhaseTraits : public MultiPhaseInstance::ProcedureInfo:: template PhaseTraits<TProc, Phase > { };
 
   typedef  PhaseProcInfo<
-    MultiPhaseInstance::ProcedureInfo:: template Priority<Phase>, 
+    typename MultiPhaseInstance::ProcedureInfo:: template Priority<Phase>, 
     MyPhaseTraits, 
     typename MultiPhaseInstance::ProcedureInfo, 
     Phase, 
@@ -473,81 +473,81 @@ public:
   template<class PROCEDURE>
   __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
-    return qs.template enqueueInitial<PROCEDURE>(data, phase);
+    return MultiPhaseInstance::qs. template enqueueInitial<PROCEDURE>(data, phase);
   }
 
   template<int threads, class PROCEDURE>
   __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData* data, int phase = 0) 
   {
-    return qs. template enqueueInitial<threads, PROCEDURE>(data, phase);
+    return MultiPhaseInstance::qs. template enqueueInitial<threads, PROCEDURE>(data, phase);
   }
 
   template<class PROCEDURE>
   __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data, int phase = 0) 
   {
-    return qs. template enqueue<PROCEDURE, CurrentPhase>(data, phase);
+    return MultiPhaseInstance::qs. template enqueue<PROCEDURE, CurrentPhase>(data, phase);
   }
 
   template<int threads, class PROCEDURE>
   __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data, int phase = 0) 
   {
-    return qs. template enqueue<threads,PROCEDURE, CurrentPhase>(data, phase);
+    return MultiPhaseInstance::qs. template enqueue<threads,PROCEDURE, CurrentPhase>(data, phase);
   }
 
   template<bool MultiProcedure>
   __inline__ __device__ int dequeue(void*& data, int*& procId, int maxShared = -1)
   {
-    return qs. template dequeue<MultiProcedure, CurrentPhase>(data, procId,maxShared);
+    return MultiPhaseInstance::qs. template dequeue<MultiProcedure, CurrentPhase>(data, procId,maxShared);
   }
 
   template<bool MultiProcedure>
   __inline__ __device__ int dequeueSelected(void*& data, int procId, int maxNum = -1)
   {
-    return qs. template dequeueSelected<MultiProcedure, CurrentPhase>(data, procId,maxNum);
+    return MultiPhaseInstance::qs. template dequeueSelected<MultiProcedure, CurrentPhase>(data, procId,maxNum);
   }
 
   template<bool MultiProcedure>
   __inline__ __device__ int dequeueStartRead(void*& data, int*& procId, int maxShared = -1)
   {
-    return qs. template dequeueStartRead<MultiProcedure, CurrentPhase>(data, procId,maxShared);
+    return MultiPhaseInstance::qs. template dequeueStartRead<MultiProcedure, CurrentPhase>(data, procId,maxShared);
   }
 
   template<class PROCEDURE>
   __inline__ __device__ int reserveRead(int maxNum = -1)
   {
-    return qs. template reserveRead<PROCEDURE, CurrentPhase>(maxNum);
+    return MultiPhaseInstance::qs. template reserveRead<PROCEDURE, CurrentPhase>(maxNum);
   }
   template<class PROCEDURE>
   __inline__ __device__ int startRead(void*& data, int num)
   {
-    return qs. template startRead<PROCEDURE, CurrentPhase>(data, num);
+    return MultiPhaseInstance::qs. template startRead<PROCEDURE, CurrentPhase>(data, num);
   }
   template<class PROCEDURE>
   __inline__ __device__ void finishRead(int id,  int num)
   {
-    return qs. template finishRead<PROCEDURE, CurrentPhase>(id, num);
+    return MultiPhaseInstance::qs. template finishRead<PROCEDURE, CurrentPhase>(id, num);
   }
 
   __inline__ __device__ void numEntries(int* counts)
   {
-    return qs. template numEntries<CurrentPhase>(counts);
+    return MultiPhaseInstance::qs. template numEntries<CurrentPhase>(counts);
   }
 
   __inline__ __device__ void workerStart()
   {
-    return qs. template workerStart<CurrentPhase>();
+    return MultiPhaseInstance::qs. template workerStart<CurrentPhase>();
   }
   __inline__ __device__ void workerMaintain()
   { 
-    return qs. template workerMaintain<CurrentPhase>();
+    return MultiPhaseInstance::qs. template workerMaintain<CurrentPhase>();
   }
   __inline__ __device__ void workerEnd()
   {
-    return qs. template workerEnd<CurrentPhase>();
+    return MultiPhaseInstance::qs. template workerEnd<CurrentPhase>();
   }
   __inline__ __device__ void globalMaintain()
   { 
-    return qs. template globalMaintain<CurrentPhase>();
+    return MultiPhaseInstance::qs. template globalMaintain<CurrentPhase>();
   }
 };
 
