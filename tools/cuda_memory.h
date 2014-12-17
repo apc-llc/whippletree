@@ -153,7 +153,7 @@ template <typename T>
 inline std::unique_ptr<T, cuda_deleter> cudaAlloc()
 {
   void* ptr;
-  printf("trying to allocate %.2f MB cuda buffer (%d bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
+  printf("trying to allocate %.2f MB cuda buffer (%zu bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
   CUDA_CHECKED_CALL(cudaMalloc(&ptr, sizeof(T)));
   return std::unique_ptr<T, cuda_deleter>(static_cast<T*>(ptr));
 }
@@ -162,7 +162,7 @@ template <typename T>
 inline std::unique_ptr<T[], cuda_deleter> cudaAllocArray(size_t N)
 {
   void* ptr;
-  printf("trying to allocate %.2f MB cuda buffer (%d * %d bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
+  printf("trying to allocate %.2f MB cuda buffer (%zu * %zu bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
   CUDA_CHECKED_CALL(cudaMalloc(&ptr, N * sizeof(T)));
   return std::unique_ptr<T[], cuda_deleter>(static_cast<T*>(ptr));
 }
