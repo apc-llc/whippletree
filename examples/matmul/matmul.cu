@@ -66,10 +66,8 @@ namespace Tools
 
 	inline __host__ void cublasError(cublasStatus_t error, const char* file, int line)
 	{
-#if defined(_DEBUG) || defined(NDEBUG)
 		if (error != CUBLAS_STATUS_SUCCESS)
 			throw CublasError(error, file, line);
-#endif
 	}
 }
 
@@ -157,9 +155,6 @@ public:
 		// Write the block sub-matrix to global memory
 		// each thread writes one element
 		C [ic] = sum;
-
-		if (threadId == numThreads - 1)
-			printf("matmul task %d\n", taskid);
 	}
 
 	template<class Q>
@@ -172,15 +167,60 @@ public:
 enum MatmulVersion
 {
 	CUBLAS,
+	CUDA,
 	WHIPPLETREE
 };
+
+__global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
+{
+    // Base indexes inside A and B
+    int ia = (blockDim.y * blockIdx.y) * n;
+    int ib = blockDim.x * blockIdx.x;
+    
+    // Subindex inside a "tile"
+    int tileidx = n * threadIdx.y + threadIdx.x;
+    
+    // Index in C
+    int ic = ia + ib + tileidx;
+
+    float sum = 0.0f;
+    int aoff = 0, boff = 0;
+
+    // Shared memory for the "tile" sub-matrix of A and B
+    __shared__ float As [BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float Bs [BLOCK_SIZE][BLOCK_SIZE];
+
+    // Go through "tiles" of size blockDim.x * blockDim.y
+    for (; aoff < n; aoff += blockDim.x, boff += blockDim.y * n)
+    {
+        // Load the "tile" matrices from global memory to shared memory
+        As [threadIdx.y][threadIdx.x] = A [ia + aoff + tileidx];
+        Bs [threadIdx.y][threadIdx.x] = B [ib + boff + tileidx];
+
+        // Synchronize to make sure the matrices are loaded
+        __syncthreads();
+
+        // Multiply the two matrices
+        for (int k = 0; k < BLOCK_SIZE; k++)
+            sum += As [threadIdx.y][k] * Bs [k][threadIdx.x];
+
+        // Synchronize to make sure that the preceding
+        // computation is done before loading two new
+        // sub-matrices of A and B in the next iteration
+        __syncthreads();
+    }
+
+    // Write the block sub-matrix to global memory
+    // each thread writes one element
+    C [ic] = sum;
+}
 
 class Matmul
 {
 public :
 	//lets use a dist locks queue for each procedure, which can hold 12k elements
 	template<class ProcInfo>
-	class MyQueue : public PerProcedureQueueTyping<QueueDistLocksOpt_t, 12 * 1024, false>::Type<ProcInfo> { };
+	class MyQueue : public PerProcedureQueueTyping<QueueDistLocksOpt_t, 96 * 1024, false>::Type<ProcInfo> { };
 
 	//and lets use a Megakernel which can execute multiple workpackages concurrently (dynamic)
 	//and offers a maximum of 16k shared memory
@@ -200,8 +240,7 @@ public :
 		CUDA_CHECKED_CALL(cudaMalloc(&B, sizeof(float) * n * n));
 		CUDA_CHECKED_CALL(cudaMalloc(&C, sizeof(float) * n * n));
 
-		MatmulConfig& dconfig = config;
-		CUDA_CHECKED_CALL(cudaMemcpy(&dconfig, &hconfig, sizeof(MatmulConfig), cudaMemcpyHostToDevice));
+		CUDA_CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
 
 		CUDA_CHECKED_CALL(cudaMemcpy(A, Ah, sizeof(float) * n * n, cudaMemcpyHostToDevice));
 		CUDA_CHECKED_CALL(cudaMemcpy(B, Bh, sizeof(float) * n * n, cudaMemcpyHostToDevice));
@@ -216,7 +255,7 @@ public :
 
 			float fone = 1.0f, fzero = 0.0f;
 			CUBLAS_CHECKED_CALL(cublasSgemm(handle,
-				cublasOperation_t::CUBLAS_OP_N, cublasOperation_t::CUBLAS_OP_N,
+				cublasOperation_t::CUBLAS_OP_T, cublasOperation_t::CUBLAS_OP_T,
 				n, n, n, &fone, A, n, B, n, &fzero, C, n));
 			
 			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
@@ -230,6 +269,23 @@ public :
 				*time = (float)((double)0.000000001 * (finish.tv_nsec - start.tv_nsec) +
 					finish.tv_sec - start.tv_sec);
 
+		}
+		if (version == MatmulVersion::CUDA)
+		{
+			volatile struct timespec start;
+			clock_gettime(CLOCK_REALTIME, (struct timespec*)&start);
+
+		    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+    		dim3 blocks( n / threads.x, n / threads.y);
+			cuda_matmul<<<blocks, threads>>>(A, B, C, n);
+			CUDA_CHECKED_CALL(cudaGetLastError());
+
+			volatile struct timespec finish;
+			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
+
+			if (time)
+				*time = (float)((double)0.000000001 * (finish.tv_nsec - start.tv_nsec) +
+					finish.tv_sec - start.tv_sec);
 		}
 		if (version == MatmulVersion::WHIPPLETREE)
 		{
@@ -279,44 +335,67 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	float *A1 = new float[n * n], *A2 = new float[n * n];
-	float *B1 = new float[n * n], *B2 = new float[n * n];
-	float *C1 = new float[n * n], *C2 = new float[n * n];
+	float *A1 = new float[n * n], *A2 = new float[n * n], *A3 = new float[n * n];
+	float *B1 = new float[n * n], *B2 = new float[n * n], *B3 = new float[n * n];
+	float *C1 = new float[n * n], *C2 = new float[n * n], *C3 = new float[n * n];
 
 	// Generate random input matrices.
 	double dinvrandmax = (double)1.0 / RAND_MAX;
 	for (size_t i = 0, length = n * n; i < length; i++)
 	{
-		A1[i] = rand() * dinvrandmax; A2[i] = A1[i];
-		B1[i] = rand() * dinvrandmax; B2[i] = B1[i];
+		A1[i] = rand() * dinvrandmax; A2[i] = A1[i]; A3[i] = A1[i];
+		B1[i] = rand() * dinvrandmax; B2[i] = B1[i]; B3[i] = B1[i];
 	}
 	memset(C1, 0, sizeof(float) * n * n);
 	memset(C2, 0, sizeof(float) * n * n);
+	memset(C3, 0, sizeof(float) * n * n);
 
 	float time;
 	Matmul(A1, B1, C1, n, MatmulVersion::CUBLAS, &time);
 	cout << "CUBLAS      version completed in " << time << " sec" << endl;
 
-	Matmul(A2, B2, C2, n, MatmulVersion::CUBLAS /*WHIPPLETREE*/, &time);
+	Matmul(A2, B2, C2, n, MatmulVersion::CUDA, &time);
+	cout << "CUDA        version completed in " << time << " sec" << endl;
+
+	Matmul(A3, B3, C3, n, MatmulVersion::WHIPPLETREE, &time);
 	cout << "WHIPPLETREE version completed in " << time << " sec" << endl;
 
-	// Compare results.
+	// Compare C1 and C2 results.
 	int status = 0;
-	for (size_t i = 0, length = n * n; i < length; i++)
+	for (int j = 0; j < n; j++)
 	{
-		if (fabsf(C1[i] - C2[i]) > 0.1f)
+		for (int i = 0; i < n; i++)
 		{
-			int Ci = i % n;
-			int Cj = i / n;
-			cerr << "Mismatching result @ [" << Ci << "][" << Cj << "]: " << C1[i] << " != " << C2[i] << endl;
-			status = -1;
-			break;
+			float c1 = C1[i + j * n];
+			float c2 = C2[i * n + j];
+			if (fabsf(c1 - c2) > 0.1f)
+			{
+				cerr << "Mismatching C2 result @ [" << i << "][" << j << "]: " << c1 << " != " << c2 << endl;
+				status = -1;
+				break;
+			}
 		}
 	}
 
-	delete[] A1; delete[] A2;
-	delete[] B1; delete[] B2;
-	delete[] C1; delete[] C2;
+	// Compare C1 and C3 results.
+	for (int j = 0; j < n; j++)
+	{
+		for (int i = 0; i < n; i++)
+		{
+			float c1 = C1[i + j * n];
+			float c3 = C3[i * n + j];
+			if (fabsf(c1 - c3) > 0.1f)
+			{
+				cerr << "Mismatching C3 result @ [" << i << "][" << j << "]: " << c1 << " != " << c3 << endl;
+				status = -1;
+				break;
+			}
+		}
+	}
+
+	delete[] A1; delete[] A2; delete[] A3;
+	delete[] B1; delete[] B2; delete[] B3;
+	delete[] C1; delete[] C2; delete[] C3;
 
 	return status;
 }
