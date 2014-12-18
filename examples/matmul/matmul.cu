@@ -279,6 +279,7 @@ public :
     		dim3 blocks( n / threads.x, n / threads.y);
 			cuda_matmul<<<blocks, threads>>>(A, B, C, n);
 			CUDA_CHECKED_CALL(cudaGetLastError());
+			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
 
 			volatile struct timespec finish;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
