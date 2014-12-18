@@ -105,10 +105,8 @@ namespace Tools
     };
   inline __host__ void checkError(cudaError error, const char* file, int line)
   {
-#if defined(_DEBUG) || defined(NDEBUG)
     if (error != cudaSuccess)
       throw CudaError(error, file, line);
-#endif
   }
 
   inline __host__ void checkError(const char* file, int line)
@@ -118,11 +116,9 @@ namespace Tools
 
   inline __host__ void checkError()
   {
-#if defined(_DEBUG) || defined(NDEBUG)
     cudaError error = cudaGetLastError();
     if (error != cudaSuccess)
       throw CudaError(error);
-#endif
   }
 }
 #define CUDA_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
