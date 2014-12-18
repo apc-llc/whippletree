@@ -193,6 +193,8 @@ public :
 		float*& B = hconfig.B;
 		float*& C = hconfig.C;
 		hconfig.n = n;
+		hconfig.gridDim_.x = n / BLOCK_SIZE;
+		hconfig.gridDim_.y = n / BLOCK_SIZE;
 	
 		CUDA_CHECKED_CALL(cudaMalloc(&A, sizeof(float) * n * n));
 		CUDA_CHECKED_CALL(cudaMalloc(&B, sizeof(float) * n * n));
@@ -205,24 +207,24 @@ public :
 		CUDA_CHECKED_CALL(cudaMemcpy(B, Bh, sizeof(float) * n * n, cudaMemcpyHostToDevice));
 
 		if (version == MatmulVersion::CUBLAS)
-		{
-			volatile struct timespec start;
-			clock_gettime(CLOCK_REALTIME, (struct timespec*)&start);
-		
+		{		
 			cublasHandle_t handle;
 			CUBLAS_CHECKED_CALL(cublasCreate(&handle));
+
+			volatile struct timespec start;
+			clock_gettime(CLOCK_REALTIME, (struct timespec*)&start);
 
 			float fone = 1.0f, fzero = 0.0f;
 			CUBLAS_CHECKED_CALL(cublasSgemm(handle,
 				cublasOperation_t::CUBLAS_OP_N, cublasOperation_t::CUBLAS_OP_N,
 				n, n, n, &fone, A, n, B, n, &fzero, C, n));
-
-			cublasDestroy(handle);
 			
 			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
 
 			volatile struct timespec finish;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
+
+			cublasDestroy(handle);
 			
 			if (time)
 				*time = (float)((double)0.000000001 * (finish.tv_nsec - start.tv_nsec) +
@@ -234,8 +236,7 @@ public :
 			MyTechnique technique;
 			technique.init();
 
-			// TODO Set proper number of tasks and gridDim_
-			technique.insertIntoQueue<MatmulTask>(12);
+			technique.insertIntoQueue<MatmulTask>(hconfig.gridDim_.x * hconfig.gridDim_.y);
 			float t = technique.execute(0);
 			if (time) *time = t;
 		}
@@ -287,7 +288,7 @@ int main(int argc, char** argv)
 	for (size_t i = 0, length = n * n; i < length; i++)
 	{
 		A1[i] = rand() * dinvrandmax; A2[i] = A1[i];
-		B1[i] = rand() * dinvrandmax; B2[i] = A1[i];
+		B1[i] = rand() * dinvrandmax; B2[i] = B1[i];
 	}
 	memset(C1, 0, sizeof(float) * n * n);
 	memset(C2, 0, sizeof(float) * n * n);
@@ -296,7 +297,7 @@ int main(int argc, char** argv)
 	Matmul(A1, B1, C1, n, MatmulVersion::CUBLAS, &time);
 	cout << "CUBLAS      version completed in " << time << " sec" << endl;
 
-	Matmul(A2, B2, C2, n, MatmulVersion::WHIPPLETREE, &time);
+	Matmul(A2, B2, C2, n, MatmulVersion::CUBLAS /*WHIPPLETREE*/, &time);
 	cout << "WHIPPLETREE version completed in " << time << " sec" << endl;
 
 	// Compare results.
