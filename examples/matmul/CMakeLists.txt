@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 project(matmul)
 
 # Block size for shared block matrix multiplication
-add_definitions(-DBLOCK_SIZE=16)
+add_definitions(-DBLOCK_SIZE=32)
 
 include(../../cmake/common.cmake)
 include(../../queues.cmake)
