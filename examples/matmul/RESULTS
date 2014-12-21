@@ -1,0 +1,78 @@
+=========
+GPU: K20C
+=========
+
+$ ./matmul 4096
+
+----------
+NO SHARED:
+----------
+
+SIMPLE:
+
+CUBLAS      version completed in 0.06303 sec
+
+CUDA        version completed in 1.42776 sec
+
+WHIPPLETREE version completed in 1.43603 sec
+
+DYNAMIC:
+
+CUBLAS      version completed in 0.06306 sec
+CUDA        version completed in 1.42595 sec
+WHIPPLETREE version completed in 1.4793 sec
+
+-------
+SHARED:
+-------
+
+SIMPLE:
+
+CUBLAS      version completed in 0.0630169 sec
+CUDA        version completed in 0.524556 sec
+WHIPPLETREE version completed in 0.770095 sec
+
+DYNAMIC:
+
+CUBLAS      version completed in 0.0630567 sec
+CUDA        version completed in 0.525354 sec
+WHIPPLETREE version completed in 0.80419 sec
+
+==========
+GPU: C2075
+==========
+
+$ ./matmul 4096
+
+----------
+NO SHARED:
+----------
+
+SIMPLE:
+
+CUBLAS      version completed in 0.203474 sec
+CUDA        version completed in 2.52776 sec
+WHIPPLETREE version completed in 2.76277 sec
+
+DYNAMIC:
+
+CUBLAS      version completed in 0.203636 sec
+CUDA        version completed in 2.50416 sec
+WHIPPLETREE version completed in 2.76061 sec
+
+-------
+SHARED:
+-------
+
+SIMPLE:
+
+CUBLAS      version completed in 0.20131 sec
+CUDA        version completed in 0.80395 sec
+WHIPPLETREE version completed in 0.977621 sec
+
+DYNAMIC:
+
+CUBLAS      version completed in 0.203923 sec
+CUDA        version completed in 0.793536 sec
+WHIPPLETREE version completed in 1.67254 sec
+
