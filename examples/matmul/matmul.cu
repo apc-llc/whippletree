@@ -116,6 +116,17 @@ public:
 		threadIdx.x = threadId % BLOCK_SIZE;
 		threadIdx.y = threadId / BLOCK_SIZE;
 
+		float sum = 0.0f;
+
+#ifndef MATMUL_USE_SHARED
+		int ia = (blockDim.y * blockIdx.y + threadIdx.y) * n;
+		int ib = blockDim.x * blockIdx.x + threadIdx.x;
+		int ic = ia + ib;
+
+		// Multiply two matrices
+		for (int k = 0; k < n; k++)
+			sum += A [ia + k] * B [ib + k * n];
+#else
 		// Base indexes inside A and B
 		int ia = (blockDim.y * blockIdx.y) * n;
 		int ib = blockDim.x * blockIdx.x;
@@ -125,8 +136,6 @@ public:
 	
 		// Index in C
 		int ic = ia + ib + tileidx;
-
-		float sum = 0.0f;
 
 		// Shared memory for the "tile" sub-matrix of A and B
 		float* As = (float*)shared;
@@ -151,7 +160,7 @@ public:
 			// sub-matrices of A and B in the next iteration
 			Context::sync();
 		}
-
+#endif
 		// Write the block sub-matrix to global memory
 		// each thread writes one element
 		C [ic] = sum;
@@ -173,6 +182,17 @@ enum MatmulVersion
 
 __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
 {
+    float sum = 0.0f;
+
+#ifndef MATMUL_USE_SHARED
+	int ia = (blockDim.y * blockIdx.y + threadIdx.y) * n;
+	int ib = blockDim.x * blockIdx.x + threadIdx.x;
+	int ic = ia + ib;
+
+	// Multiply two matrices
+	for (int k = 0; k < n; k++)
+		sum += A [ia + k] * B [ib + k * n];
+#else
     // Base indexes inside A and B
     int ia = (blockDim.y * blockIdx.y) * n;
     int ib = blockDim.x * blockIdx.x;
@@ -183,7 +203,6 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
     // Index in C
     int ic = ia + ib + tileidx;
 
-    float sum = 0.0f;
     int aoff = 0, boff = 0;
 
     // Shared memory for the "tile" sub-matrix of A and B
@@ -209,7 +228,7 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
         // sub-matrices of A and B in the next iteration
         __syncthreads();
     }
-
+#endif
     // Write the block sub-matrix to global memory
     // each thread writes one element
     C [ic] = sum;
@@ -224,7 +243,7 @@ public :
 
 	//and lets use a Megakernel which can execute multiple workpackages concurrently (dynamic)
 	//and offers a maximum of 16k shared memory
-	typedef Megakernel::DynamicPointed16336<MyQueue, ProcInfo<MatmulTask> > MyTechnique;
+	typedef Megakernel::SimplePointed16336<MyQueue, ProcInfo<MatmulTask> > MyTechnique;
 
 	Matmul(float* Ah, float* Bh, float* Ch, size_t n, MatmulVersion version, float* time = NULL)
 	{
