@@ -287,8 +287,8 @@ namespace KernelLaunches
 
       int dev;
       cudaDeviceProp props;
-      cudaGetDevice(&dev);
-      cudaGetDeviceProperties(&props, dev);
+      CUDA_CHECKED_CALL(cudaGetDevice(&dev));
+      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
       freq = props.clockRate;
     }
 

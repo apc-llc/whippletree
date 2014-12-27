@@ -648,8 +648,8 @@ namespace Megakernel
 
       cudaDeviceProp props;
       int dev;
-      cudaGetDevice(&dev);
-      cudaGetDeviceProperties(&props, dev);
+      CUDA_CHECKED_CALL(cudaGetDevice(&dev));
+      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
       freq = static_cast<int>(static_cast<unsigned long long>(props.clockRate)*1000/1024);
     }
 

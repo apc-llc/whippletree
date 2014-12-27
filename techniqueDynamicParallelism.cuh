@@ -276,9 +276,9 @@ namespace DynamicParallelism
     void init()
     {
       int d;
-      cudaGetDevice(&d);
+      CUDA_CHECKED_CALL(cudaGetDevice(&d));
       cudaDeviceProp prop;
-      cudaGetDeviceProperties(&prop, d);
+      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&prop, d));
       freq = static_cast<int>(static_cast<unsigned long long>(prop.clockRate)*1000/1024);
       if(prop.major*10 + prop.minor < 35)
       {
@@ -637,9 +637,9 @@ namespace DynamicParallelism
     void init()
     {
       int d;
-      cudaGetDevice(&d);
+      CUDA_CHECKED_CALL(cudaGetDevice(&d));
       cudaDeviceProp prop;
-      cudaGetDeviceProperties(&prop, d);
+      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&prop, d));
       freq = static_cast<int>(static_cast<unsigned long long>(prop.clockRate)*1000/1024);
       if(prop.major*10 + prop.minor < 35)
       {
