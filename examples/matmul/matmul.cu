@@ -313,8 +313,19 @@ public :
 			technique.init();
 
 			technique.insertIntoQueue<MatmulTask>(hconfig.gridDim_.x * hconfig.gridDim_.y);
-			float t = technique.execute(0);
-			if (time) *time = t;
+
+			volatile struct timespec start;
+			clock_gettime(CLOCK_REALTIME, (struct timespec*)&start);
+
+			technique.execute(0);
+			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+
+			volatile struct timespec finish;
+			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
+
+			if (time)
+				*time = (float)((double)0.000000001 * (finish.tv_nsec - start.tv_nsec) +
+					finish.tv_sec - start.tv_sec);
 		}
 
 		CUDA_CHECKED_CALL(cudaMemcpy(Ch, C, sizeof(float) * n * n, cudaMemcpyDeviceToHost));

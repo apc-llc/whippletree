@@ -516,9 +516,6 @@ namespace Megakernel
     uint4 sharedMem[PROCINFO::NumPhases];
     uint sharedMemSum[PROCINFO::NumPhases];
 
-    cudaEvent_t a, b;
-    PointInTime hStart;
-
     int freq;
 
     struct InitPhaseVisitor
@@ -574,55 +571,18 @@ namespace Megakernel
     };
 
 
-    void preCall(bool syncGPU = false)
+    void preCall(cudaStream_t stream)
     {
       int magic = 2597, null = 0;
-      CUDA_CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
-      CUDA_CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
-
-      if(syncGPU)
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
-      PointInTime start;
-            
-      CUDA_CHECKED_CALL(cudaEventRecord(a));
+      CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(doneCounter, &null, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
+      CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(endCounter, &magic, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
     }
 
-    double postCall(bool syncGPU = false)
+    void postCall(cudaStream_t stream)
     {
-      float thist;
-      CUDA_CHECKED_CALL(cudaEventRecord(b));
-      if(syncGPU)
-      {
-        cudaError_t err = cudaEventSynchronize(b);
-        CUDA_CHECKED_CALL(err);
-
-        PointInTime end;
-        if(err != cudaSuccess)
-          return -1;
-        double hTime = end - hStart;
-      }
-      else
-      {
-        CUDA_CHECKED_CALL(cudaEventSynchronize(b));
-      }
-
-      CUDA_CHECKED_CALL(cudaEventElapsedTime(&thist, a, b));
-      return thist / 1000.0; //end - start;
     }
 
   public:
-
-    TechniqueCore() : a(0)
-    { }
-
-    ~TechniqueCore()
-    {
-      if(a != 0)
-      {
-        CUDA_CHECKED_CALL(cudaEventDestroy(a));
-        CUDA_CHECKED_CALL(cudaEventDestroy(b));
-      }
-    }
 
     void init()
     {
@@ -639,12 +599,6 @@ namespace Megakernel
 
       InitPhaseVisitor v(*this);
       Q::template staticVisit<InitPhaseVisitor>(v);
-
-      if(a == 0)
-      {
-        CUDA_CHECKED_CALL(cudaEventCreate(&a));
-        CUDA_CHECKED_CALL(cudaEventCreate(&b));
-      }
 
       cudaDeviceProp props;
       int dev;
@@ -731,30 +685,32 @@ namespace Megakernel
       int blocks, blockSize, sharedMemSum;
       uint4 sharedMem;
       Q* q;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q) { }
+      cudaStream_t stream;
+      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, cudaStream_t stream) :
+        phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), stream(stream) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()
       {
         if(phase == Phase)
         {
-          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<false,false> ><<<blocks, blockSize, sharedMemSum>>> (reinterpret_cast<TQueue*>(q), sharedMem, 0);
+          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<false,false> ><<<blocks, blockSize, sharedMemSum, stream>>> (reinterpret_cast<TQueue*>(q), sharedMem, 0);
           return true;
         }
         return false;
       }
     };
   public:
-    double execute(int phase = 0)
+    void execute(int phase = 0, cudaStream_t stream = 0)
     {
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false> TCore;
-    
-      TCore::preCall(false);
 
-      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase]);
+      TCore::preCall(stream);
+
+      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], stream);
       Q::template staticVisit<LaunchVisitor>(v);
 
-      return TCore::postCall(false);
+      TCore::postCall(stream);
     }
   };
 
@@ -766,15 +722,17 @@ namespace Megakernel
 
   public:
     template<int Phase, int TimeLimitInKCycles>
-    double execute()
+    double execute(cudaStream_t stream = 0)
     {
       typedef CurrentMultiphaseQueue<Q, Phase> ThisQ;
 
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,true,false> TCore;
 
-      TCore::preCall(false);
-      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false> ><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase]>>>(TCore::q.get(), TCore::sharedMem[Phase], 0);
-      return TCore::postCall(false);
+      TCore::preCall(stream);
+
+      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false> ><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase], stream>>>(TCore::q.get(), TCore::sharedMem[Phase], 0);
+
+      TCore::postCall(stream);
     }
 
     template<int Phase>
@@ -810,16 +768,16 @@ namespace Megakernel
       }
     };
   public:
-    double execute(int phase = 0, double timelimitInMs = 0)
+    double execute(int phase = 0, cudaStream_t stream = 0, double timelimitInMs = 0)
     {
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true> TCore;
-    
-      TCore::preCall(false);
 
-      LaunchVisitor v(TCore::q.get(),phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], timelimitInMs/1000*TCore::freq);
+      TCore::preCall(stream);
+
+      LaunchVisitor v(TCore::q.get(),phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], timelimitInMs/1000*TCore::freq, stream);
       Q::template staticVisit<LaunchVisitor>(v);
 
-      return TCore::postCall(false);
+      TCore::postCall(stream);
     }
   };
 

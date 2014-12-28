@@ -92,7 +92,7 @@ public:
     if(myLocalThreadId == 2)
       *myGroupShared = data->x;
     uint fromShared = *myGroupShared;
-    printf("thread %d of %d excutes Proc1 for data %d, being thred %d in group %d with data in shared: %d\n", threadId, numThreads, data->x, myLocalThreadId, myGroupId, fromShared);
+    printf("thread %d of %d excutes Proc1 for data %d, being thread %d in group %d with data in shared: %d\n", threadId, numThreads, data->x, myLocalThreadId, myGroupId, fromShared);
     
     // enqueue an element for Proc2
     if(myLocalThreadId == 0)

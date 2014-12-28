@@ -120,6 +120,24 @@ void runTest(int cuda_device)
   technique.init();
   
   technique.insertIntoQueue<InitProc>(10);
-  float t = technique.execute(0);
-  printf("run completed in %fs\n", t);
+  
+  cudaStream_t stream;
+  CUDA_CHECKED_CALL(cudaStreamCreate(&stream));
+  cudaEvent_t a, b;
+  CUDA_CHECKED_CALL(cudaEventCreate(&a));
+  CUDA_CHECKED_CALL(cudaEventCreate(&b));
+  CUDA_CHECKED_CALL(cudaEventRecord(a, stream));
+
+  technique.execute(0, stream);
+
+  CUDA_CHECKED_CALL(cudaEventRecord(b, stream));
+  CUDA_CHECKED_CALL(cudaEventSynchronize(b));
+  float time;
+  CUDA_CHECKED_CALL(cudaEventElapsedTime(&time, a, b));
+  time /= 1000.0;
+  CUDA_CHECKED_CALL(cudaEventDestroy(a));
+  CUDA_CHECKED_CALL(cudaEventDestroy(b));
+  CUDA_CHECKED_CALL(cudaStreamDestroy(stream));
+
+  printf("run completed in %fs\n", time);
 }
