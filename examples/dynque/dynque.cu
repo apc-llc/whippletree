@@ -1,10 +1,13 @@
 // TODO:
-// 1) Extend megakernel interface to run infinitely, waiting for tasks
 // 2) Implement tasks queuing from host to device (requires 2-way dynamic data exchange?).
 // 3) Develop system to determine pointers of task device functions
+// Optional:
+// 1) Make DynamicTaskManager a singleton?
+
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <time.h>
 #include <tools/utils.h>
 #include <unistd.h>
@@ -20,6 +23,10 @@
 #include "procedureInterface.cuh"
 #include "procinfoTemplate.cuh"
 
+#define MAX_NUM_TASK_FUNCTIONS 1024
+
+using namespace std;
+
 typedef void (*DynamicTaskFunction)(int threadId, int numThreads, void* data, volatile uint* shared);
 
 struct DynamicTaskInfo
@@ -31,7 +38,44 @@ struct DynamicTaskInfo
 namespace
 {
 	__constant__ bool finish;
+	__device__ DynamicTaskInfo* submission;
+
+	template<DynamicTaskFunction Func>	
+	__global__ void getfuncaddress(DynamicTaskInfo* info)
+	{
+		info->func = Func;
+	}
 }
+
+class DynamicTaskManager;
+
+class DynamicTask
+{
+	DynamicTaskInfo* info;
+
+	friend class DynamicTaskManager;
+
+public :
+
+	template<DynamicTaskFunction Func>
+	static DynamicTask* Create()
+	{
+		DynamicTask* task = new DynamicTask();
+
+		CUDA_CHECKED_CALL(cudaMalloc(&task->info, sizeof(DynamicTaskInfo)));
+
+		// Determine the given task function address on device.
+		getfuncaddress<Func><<<1, 1>>>(task->info);
+		CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+		
+		return task;
+	}
+
+	~DynamicTask()
+	{
+		CUDA_CHECKED_CALL(cudaFree(info));
+	}
+};
 
 class DynamicTaskManager
 {
@@ -78,9 +122,12 @@ public :
 		{
 			if (threadIdx.x == 0)
 			{
-				printf("Insert something into queue!\n");
-
-				//TQueue::Type<ProcInfo>::template enqueue<Task>(NULL);
+				if (submission)
+				{
+					TQueue::Type<ProcInfo>::template enqueue<Task>(*submission);
+					submission = NULL;
+					__threadfence();
+				}
 			}			 
 		}
 	};
@@ -117,12 +164,23 @@ public :
 		CUDA_CHECKED_CALL(cudaStreamSynchronize(stream1));
 	}
 
-	void EnqueueTask()
+	void enqueue(const DynamicTask* task, void* data) const
 	{
-	}
+		// Copy data to device memory.
+		CUDA_CHECKED_CALL(cudaMemcpyAsync(&task->info->data, &data, sizeof(void*), cudaMemcpyHostToDevice, stream2));
+		
+		// Wait until queue gets empty.
+		while (true)
+		{
+			DynamicTaskInfo* busy = NULL;
+			CUDA_CHECKED_CALL(cudaMemcpyFromSymbolAsync(&busy, submission, sizeof(DynamicTaskInfo*), 0, cudaMemcpyDeviceToHost, stream2));
+			CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
+			if (!busy) break;
+		}
 
-	void EnqueueTaskAsync()
-	{
+		// Submit task into queue.
+		CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(submission, &task->info, sizeof(DynamicTaskInfo*), 0, cudaMemcpyHostToDevice, stream2));
+		CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
 	}
 
 	DynamicTaskManager()
@@ -145,10 +203,14 @@ public :
 	}
 };
 
+void __device__ task1func(int threadId, int numThreads, void* data, volatile uint* shared)
+{
+	if (threadId == 0)
+		printf("Task #1 processed!\n");
+}
+
 int main(int argc, char** argv)
 {
-	using namespace std;
-
 	{
 		int count;
 		CUDA_CHECKED_CALL(cudaGetDeviceCount(&count));
@@ -163,8 +225,11 @@ int main(int argc, char** argv)
 	}
 
 	DynamicTaskManager dtm;
+
+	unique_ptr<DynamicTask> task1(DynamicTask::Create<task1func>());
 	
 	dtm.start();
+	dtm.enqueue(task1.get(), NULL);
 
 	// Make uberkernel to work for a while.
 	uint timeout = 10;
