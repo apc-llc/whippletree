@@ -17,6 +17,7 @@ SET(TECHNIQUE_SOURCES
 )
 SET(QUEUE_SOURCES
 	${SOURCE_DIR}/segmentedStorage.cuh
+	${SOURCE_DIR}/segmentedStorage.cu
 	${SOURCE_DIR}/queueHelpers.cuh
 	${SOURCE_DIR}/queueDistLocks.cuh
 	${SOURCE_DIR}/queueExternalFetch.cuh

@@ -39,7 +39,7 @@
 namespace SegmentedStorage
 {
 
-  void (*pReinitStorage)() = 0;
+  extern void (*pReinitStorage)();
   __device__ void* storage;
   template<int TStorageSize, int TBlockSize>
   class Storage
@@ -118,7 +118,7 @@ namespace SegmentedStorage
     }
   };
 
-  void* StoragePointer = 0;
+  extern void* StoragePointer;
 
   template<int StorageSize, int BlockSize>
   __global__ void initStorage(void* data)
@@ -147,19 +147,9 @@ namespace SegmentedStorage
     pReinitStorage = &reinitStorage<Storage>;
   }
 
-  void destroyStorage()
-  {
-    if(StoragePointer != 0)
-      CUDA_CHECKED_CALL(cudaFree(&StoragePointer));
-    StoragePointer = 0;
-    pReinitStorage = 0;
-  }
+  void destroyStorage();
 
-  void checkReinitStorage()
-  {
-    if(pReinitStorage != 0)
-      pReinitStorage();
-  }
+  void checkReinitStorage();
  
 
   template<uint TQueueSize, uint ElementsPerBlock, class SharedStorage>
