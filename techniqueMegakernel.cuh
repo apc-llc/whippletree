@@ -53,6 +53,16 @@ namespace SegmentedStorage
 
 namespace Megakernel
 {
+  enum MegakernelStopCriteria
+  {
+    // Stop megakernel, when the task queue is empty.
+    EmptyQueue,
+
+    // Stop megakernel, when the task queue is empty,
+    // and "shutdown" indicator is filled with "true" value.
+    ShutdownIndicator,
+  };
+
   __device__ volatile int doneCounter = 0;
   __device__ volatile int endCounter = 0;
 
@@ -394,8 +404,8 @@ namespace Megakernel
     }
   };
 
-  template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter>
-  __global__ void megakernel(Q* q, uint4 sharedMemDist, int t)
+  template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
+  __global__ void megakernel(Q* q, uint4 sharedMemDist, int t, bool* shutdown)
   {
     if(q == 0)
     {
@@ -484,8 +494,16 @@ namespace Megakernel
               runState = 2;
             }
             else if(endCounter == 0)
+            {
               //everyone is really out of work
-              runState = 0;
+              if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
+                runState = 0;
+              else if (shutdown)
+              {
+                if(*shutdown)
+                  runState = 0;
+              }
+            }
           }
         }
       }
@@ -557,7 +575,7 @@ namespace Megakernel
         int nblocks = 0;
         CUDA_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocks, &nblocks, sizeof(int)));
         CUDA_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
-        megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit> > <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0);
+        megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
         CUDA_CHECKED_CALL(cudaDeviceSynchronize());
@@ -671,11 +689,11 @@ namespace Megakernel
     }
   };
 
-  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext = void, int maxShared = 16336, bool LoadToShared = true, bool MultiElement = true, bool StaticTimelimit  = false, bool DynamicTimelimit = false>
+  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext = void, MegakernelStopCriteria StopCriteria = EmptyQueue, int maxShared = 16336, bool LoadToShared = true, bool MultiElement = true, bool StaticTimelimit = false, bool DynamicTimelimit = false>
   class Technique;
   
-  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, int maxShared, bool LoadToShared, bool MultiElement>
-  class Technique<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false> : public TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false>
+  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, MegakernelStopCriteria StopCriteria, int maxShared, bool LoadToShared, bool MultiElement>
+  class Technique<QUEUE, PROCINFO, ApplicationContext, StopCriteria, maxShared, LoadToShared, MultiElement, false, false> : public TechniqueCore<QUEUE, PROCINFO, ApplicationContext, maxShared, LoadToShared, MultiElement, false, false>
   {
     typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
 
@@ -686,28 +704,29 @@ namespace Megakernel
       uint4 sharedMem;
       Q* q;
       cudaStream_t stream;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, cudaStream_t stream) :
-        phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), stream(stream) { }
+      bool* shutdown;
+      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, cudaStream_t stream, bool* shutdown) :
+        phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), stream(stream), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()
       {
         if(phase == Phase)
         {
-          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<false,false> ><<<blocks, blockSize, sharedMemSum, stream>>> (reinterpret_cast<TQueue*>(q), sharedMem, 0);
+          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<false,false>, StopCriteria><<<blocks, blockSize, sharedMemSum, stream>>> (reinterpret_cast<TQueue*>(q), sharedMem, 0, shutdown);
           return true;
         }
         return false;
       }
     };
   public:
-    void execute(int phase = 0, cudaStream_t stream = 0)
+    void execute(int phase = 0, cudaStream_t stream = 0, bool* shutdown = NULL)
     {
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false> TCore;
 
       TCore::preCall(stream);
 
-      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], stream);
+      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], stream, shutdown);
       Q::template staticVisit<LaunchVisitor>(v);
 
       TCore::postCall(stream);
@@ -715,14 +734,14 @@ namespace Megakernel
   };
 
 
-  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, int maxShared, bool LoadToShared, bool MultiElement>
-  class Technique<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,true,false> : public TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,true,false>
+  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, MegakernelStopCriteria StopCriteria, int maxShared, bool LoadToShared, bool MultiElement>
+  class Technique<QUEUE, PROCINFO, ApplicationContext, StopCriteria, maxShared, LoadToShared, MultiElement, true, false> : public TechniqueCore<QUEUE, PROCINFO, ApplicationContext, maxShared, LoadToShared, MultiElement, true, false>
   {
     typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
 
   public:
     template<int Phase, int TimeLimitInKCycles>
-    double execute(cudaStream_t stream = 0)
+    void execute(cudaStream_t stream = 0, bool* shutdown = NULL)
     {
       typedef CurrentMultiphaseQueue<Q, Phase> ThisQ;
 
@@ -730,20 +749,20 @@ namespace Megakernel
 
       TCore::preCall(stream);
 
-      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false> ><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase], stream>>>(TCore::q.get(), TCore::sharedMem[Phase], 0);
+      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false>, StopCriteria><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase], stream>>>(TCore::q.get(), TCore::sharedMem[Phase], 0, shutdown);
 
       TCore::postCall(stream);
     }
 
     template<int Phase>
-    double execute()
+    void execute(cudaStream_t stream = 0)
     {
-      return execute<Phase, 0>();
+      return execute<Phase, 0>(stream);
     }
   };
 
-  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, int maxShared, bool LoadToShared, bool MultiElement>
-  class Technique<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true> : public TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true>
+  template<template <class> class QUEUE, class PROCINFO, class ApplicationContext, MegakernelStopCriteria StopCriteria, int maxShared, bool LoadToShared, bool MultiElement>
+  class Technique<QUEUE, PROCINFO, ApplicationContext, StopCriteria, maxShared, LoadToShared, MultiElement, false, true> : public TechniqueCore<QUEUE, PROCINFO, ApplicationContext, maxShared, LoadToShared, MultiElement, false, true>
   {
     typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
 
@@ -754,27 +773,28 @@ namespace Megakernel
       uint4 sharedMem;
       int timeLimit;
       Q* q;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, int timeLimit) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q) { }
+      bool* shutdown;
+      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, int timeLimit) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()
       {
         if(phase == Phase)
         {
-          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false,TimeLimiter<false,true> ><<<blocks, blockSize, sharedMemSum>>>(reinterpret_cast<TQueue*>(q), sharedMem, timeLimit);
+          megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false,TimeLimiter<false,true>, StopCriteria><<<blocks, blockSize, sharedMemSum>>>(reinterpret_cast<TQueue*>(q), sharedMem, timeLimit, shutdown);
           return true;
         }
         return false;
       }
     };
   public:
-    double execute(int phase = 0, cudaStream_t stream = 0, double timelimitInMs = 0)
+    void execute(int phase = 0, cudaStream_t stream = 0, double timelimitInMs = 0, bool* shutdown = NULL)
     {
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true> TCore;
 
       TCore::preCall(stream);
 
-      LaunchVisitor v(TCore::q.get(),phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], timelimitInMs/1000*TCore::freq, stream);
+      LaunchVisitor v(TCore::q.get(),phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], timelimitInMs/1000*TCore::freq, stream, shutdown);
       Q::template staticVisit<LaunchVisitor>(v);
 
       TCore::postCall(stream);
@@ -783,48 +803,48 @@ namespace Megakernel
 
   // convenience defines
 
-  template<template <class> class Q, class PROCINFO, class CUSTOM, int maxShared = 16336>
-  class SimpleShared : public Technique<Q, PROCINFO, CUSTOM, maxShared, true, false>
+  template<template <class> class Q, class PROCINFO, class CUSTOM, MegakernelStopCriteria StopCriteria = EmptyQueue, int maxShared = 16336>
+  class SimpleShared : public Technique<Q, PROCINFO, CUSTOM, StopCriteria, maxShared, true, false>
   { };
-  template<template <class> class Q, class PROCINFO, class CUSTOM, int maxShared = 16336>
-  class SimplePointed : public Technique<Q, PROCINFO, CUSTOM, maxShared, false, false>
+  template<template <class> class Q, class PROCINFO, class CUSTOM, MegakernelStopCriteria StopCriteria = EmptyQueue, int maxShared = 16336>
+  class SimplePointed : public Technique<Q, PROCINFO, CUSTOM, StopCriteria, maxShared, false, false>
   { };
-  template<template <class> class Q, class PROCINFO, class CUSTOM, int maxShared = 16336>
-  class DynamicShared : public Technique<Q, PROCINFO, CUSTOM, maxShared, true, true>
+  template<template <class> class Q, class PROCINFO, class CUSTOM, MegakernelStopCriteria StopCriteria = EmptyQueue, int maxShared = 16336>
+  class DynamicShared : public Technique<Q, PROCINFO, CUSTOM, StopCriteria, maxShared, true, true>
   { };
-  template<template <class> class Q, class PROCINFO, class CUSTOM, int maxShared = 16336>
-  class DynamicPointed : public Technique<Q, PROCINFO, CUSTOM, maxShared, false, true>
-  { };
-
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class SimpleShared16336 : public SimpleShared<Q, PROCINFO, CUSTOM, 16336>
+  template<template <class> class Q, class PROCINFO, class CUSTOM, MegakernelStopCriteria StopCriteria = EmptyQueue, int maxShared = 16336>
+  class DynamicPointed : public Technique<Q, PROCINFO, CUSTOM, StopCriteria, maxShared, false, true>
   { };
 
-    template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class SimpleShared49000: public SimpleShared<Q, PROCINFO, CUSTOM, 49000>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class SimpleShared16336 : public SimpleShared<Q, PROCINFO, CUSTOM, StopCriteria, 16336>
   { };
 
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class SimplePointed24576 : public SimplePointed<Q, PROCINFO, CUSTOM, 24576>
+    template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class SimpleShared49000: public SimpleShared<Q, PROCINFO, CUSTOM, StopCriteria, 49000>
+  { };
+
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class SimplePointed24576 : public SimplePointed<Q, PROCINFO, CUSTOM, StopCriteria, 24576>
   {  };
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class SimplePointed16336 : public SimplePointed<Q, PROCINFO, CUSTOM, 16336>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class SimplePointed16336 : public SimplePointed<Q, PROCINFO, CUSTOM, StopCriteria, 16336>
   {  };
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class SimplePointed12000 : public SimplePointed<Q, PROCINFO, CUSTOM, 12000>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class SimplePointed12000 : public SimplePointed<Q, PROCINFO, CUSTOM, StopCriteria, 12000>
   {  };
 
 
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class DynamicShared16336 : public DynamicShared<Q, PROCINFO, CUSTOM, 16336>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class DynamicShared16336 : public DynamicShared<Q, PROCINFO, CUSTOM, StopCriteria, 16336>
   {  };
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class DynamicPointed16336 : public DynamicPointed<Q, PROCINFO, CUSTOM, 16336>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class DynamicPointed16336 : public DynamicPointed<Q, PROCINFO, CUSTOM, StopCriteria, 16336>
   {  };
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class DynamicPointed12000 : public DynamicPointed<Q, PROCINFO, CUSTOM, 12000>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class DynamicPointed12000 : public DynamicPointed<Q, PROCINFO, CUSTOM, StopCriteria, 12000>
   {  };
-  template<template <class> class Q, class PROCINFO, class CUSTOM = void>
-  class DynamicPointed11000 : public DynamicPointed<Q,  PROCINFO, CUSTOM, 11000>
+  template<template <class> class Q, class PROCINFO, class CUSTOM = void, MegakernelStopCriteria StopCriteria = EmptyQueue>
+  class DynamicPointed11000 : public DynamicPointed<Q,  PROCINFO, CUSTOM, StopCriteria, 11000>
   {  };
 }
