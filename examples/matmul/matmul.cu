@@ -406,6 +406,7 @@ int main(int argc, char** argv)
 				break;
 			}
 		}
+		if (status == -1) break;
 	}
 
 	// Compare C1 and C3 results.
@@ -422,6 +423,7 @@ int main(int argc, char** argv)
 				break;
 			}
 		}
+		if (status == -1) break;
 	}
 
 	delete[] A1; delete[] A2; delete[] A3;
