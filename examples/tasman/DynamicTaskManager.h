@@ -13,6 +13,13 @@ typedef void (*DynamicTaskFunction)(int threadId, int numThreads, void* data, vo
 
 namespace
 {
+	struct DynamicTaskInfo;
+}
+
+extern __device__ DynamicTaskInfo* submission;
+
+namespace
+{
 	struct DynamicTaskInfo
 	{
 		DynamicTaskFunction func;
@@ -24,8 +31,6 @@ namespace
 	{
 		info->func = Func;
 	}
-
-	__device__ DynamicTaskInfo* submission;
 
 	class Task : public ::Procedure
 	{
@@ -40,8 +45,8 @@ namespace
 		static __device__ __inline__ void execute(int threadId, int numThreads, Q* queue, ExpectedData* data, volatile uint* shared)
 		{
 			// Execute given task with the given argument.
-			DynamicTaskInfo* task = (DynamicTaskInfo*)data;
-			task->func(threadId, numThreads, task->data, shared);
+			DynamicTaskInfo* info = (DynamicTaskInfo*)data;
+			info->func(threadId, numThreads, info->data, shared);
 		}
 
 		template<class Q>
@@ -69,7 +74,6 @@ namespace
 				{
 					TQueue::Type<ProcInfo>::template enqueue<Task>(*submission);
 					submission = NULL;
-					__threadfence();
 				}
 			}			 
 		}
@@ -108,7 +112,7 @@ public :
 class DynamicTaskManager
 {
 	cudaStream_t stream1, stream2;
-	bool* address;
+	int* address;
 	
 	MyTechnique technique;
 

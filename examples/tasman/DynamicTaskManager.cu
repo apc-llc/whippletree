@@ -1,8 +1,10 @@
 #include "DynamicTaskManager.h"
 
+__device__ DynamicTaskInfo* submission;
+
 namespace
 {
-	__constant__ bool finish;
+	__device__ int finish;
 }
 
 DynamicTask::~DynamicTask()
@@ -39,8 +41,8 @@ void DynamicTaskManager::start()
 {
 	// Initialize finishing marker with "false" to make uberkernel
 	// to run infinitely.
-	bool value = false;
-	CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(finish, &value, sizeof(bool), 0, cudaMemcpyHostToDevice, stream2));
+	int value = 0;
+	CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(finish, &value, sizeof(int), 0, cudaMemcpyHostToDevice, stream2));
 	CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
 
 	// Start megakernel in a dedicated stream.
@@ -50,20 +52,6 @@ void DynamicTaskManager::start()
 
 void DynamicTaskManager::stop()
 {
-	// Signal shut down to uberkernel.
-	bool value = true;
-	CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(finish, &value, sizeof(bool), 0, cudaMemcpyHostToDevice, stream2));
-	CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
-	
-	// Wait for uberkernel to finish.
-	CUDA_CHECKED_CALL(cudaStreamSynchronize(stream1));
-}
-
-void DynamicTaskManager::enqueue(const DynamicTask* task, void* data) const
-{
-	// Copy data to device memory.
-	CUDA_CHECKED_CALL(cudaMemcpyAsync(&task->info->data, &data, sizeof(void*), cudaMemcpyHostToDevice, stream2));
-	
 	// Wait until queue gets empty.
 	while (true)
 	{
@@ -72,6 +60,29 @@ void DynamicTaskManager::enqueue(const DynamicTask* task, void* data) const
 		CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
 		if (!busy) break;
 	}
+
+	// Signal shut down to uberkernel.
+	int value = 1;
+	CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(finish, &value, sizeof(int), 0, cudaMemcpyHostToDevice, stream2));
+	CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
+	
+	// Wait for uberkernel to finish.
+	CUDA_CHECKED_CALL(cudaStreamSynchronize(stream1));
+}
+
+void DynamicTaskManager::enqueue(const DynamicTask* task, void* data) const
+{	
+	// Wait until queue gets empty.
+	while (true)
+	{
+		DynamicTaskInfo* busy = NULL;
+		CUDA_CHECKED_CALL(cudaMemcpyFromSymbolAsync(&busy, submission, sizeof(DynamicTaskInfo*), 0, cudaMemcpyDeviceToHost, stream2));
+		CUDA_CHECKED_CALL(cudaStreamSynchronize(stream2));
+		if (!busy) break;
+	}
+
+	// Copy data to device memory.
+	CUDA_CHECKED_CALL(cudaMemcpyAsync(&task->info->data, &data, sizeof(void*), cudaMemcpyHostToDevice, stream2));
 
 	// Submit task into queue.
 	CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(submission, &task->info, sizeof(DynamicTaskInfo*), 0, cudaMemcpyHostToDevice, stream2));
