@@ -4,6 +4,8 @@
 
 void (*SegmentedStorage::pReinitStorage)() = 0;
 
+__device__ void* storage = NULL;
+
 void* SegmentedStorage::StoragePointer = 0;
 
 void SegmentedStorage::destroyStorage()

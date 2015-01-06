@@ -40,7 +40,7 @@ namespace SegmentedStorage
 {
 
   extern void (*pReinitStorage)();
-  __device__ void* storage;
+  extern __device__ void* storage;
   template<int TStorageSize, int TBlockSize>
   class Storage
   {

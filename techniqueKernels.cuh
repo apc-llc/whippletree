@@ -53,7 +53,7 @@ namespace SegmentedStorage
 namespace KernelLaunches
 {
   static const int MaxProcs = 1024;
-  __device__ int queueCounts[MaxProcs];
+  extern __device__ int queueCounts[MaxProcs];
 
 
   template<class InitProc, class Q>

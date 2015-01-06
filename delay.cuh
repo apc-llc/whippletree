@@ -33,7 +33,7 @@
 #pragma once
 
 
-__device__ volatile float BigData[1024*1024];
+extern __device__ volatile float BigData[1024*1024];
 
 template<int ITS, int REGS = 16>
 class DelayClock

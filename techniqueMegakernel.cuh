@@ -63,8 +63,8 @@ namespace Megakernel
     ShutdownIndicator,
   };
 
-  __device__ volatile int doneCounter = 0;
-  __device__ volatile int endCounter = 0;
+  extern __device__ volatile int doneCounter;
+  extern __device__ volatile int endCounter;
 
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
@@ -225,18 +225,18 @@ namespace Megakernel
 
 #undef PROCCALLNOCOPYPART
 
-  __device__ int maxConcurrentBlocks = 0;
-  __device__ volatile int maxConcurrentBlockEvalDone = 0;
+  extern __device__ int maxConcurrentBlocks;
+  extern __device__ volatile int maxConcurrentBlockEvalDone;
 
 
-  template<class Q, bool Maintainer>
+  template<class Q, MegakernelStopCriteria StopCriteria, bool Maintainer>
   class MaintainerCaller;
 
-  template<class Q>
-  class MaintainerCaller<Q,true>
+  template<class Q, MegakernelStopCriteria StopCriteria>
+  class MaintainerCaller<Q, StopCriteria, true>
   {
   public:
-    static __inline__ __device__ bool RunMaintainer(Q* q)
+    static __inline__ __device__ bool RunMaintainer(Q* q, int* shutdown)
     {
       
       if(blockIdx.x == 1)
@@ -251,8 +251,16 @@ namespace Megakernel
           __syncthreads();
           if(runs > 10)
           {
-            if(endCounter == 0)   
-               run = false;
+            if(endCounter == 0)
+            {
+              if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
+                run = false;
+              else if (shutdown)
+              {
+                if(*shutdown)
+                  run = false;
+             }
+            }
             __syncthreads();
           }
           else
@@ -262,11 +270,11 @@ namespace Megakernel
       return false;
     }
   };
-  template<class Q>
-  class MaintainerCaller<Q,false>
+  template<class Q, MegakernelStopCriteria StopCriteria>
+  class MaintainerCaller<Q, StopCriteria, false>
   {
   public:
-    static __inline__ __device__ bool RunMaintainer(Q* q)
+    static __inline__ __device__ bool RunMaintainer(Q* q, int* shutdown)
     {
       return false;
     }
@@ -405,7 +413,7 @@ namespace Megakernel
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
-  __global__ void megakernel(Q* q, uint4 sharedMemDist, int t, bool* shutdown)
+  __global__ void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown)
   {
     if(q == 0)
     {
@@ -421,7 +429,7 @@ namespace Megakernel
     }
     __shared__ volatile int runState;
 
-    if(MaintainerCaller<Q, Maintainer>::RunMaintainer(q))
+    if(MaintainerCaller<Q, StopCriteria, Maintainer>::RunMaintainer(q, shutdown))
       return;
 
     __shared__ TimeLimiter timelimiter;
@@ -704,8 +712,8 @@ namespace Megakernel
       uint4 sharedMem;
       Q* q;
       cudaStream_t stream;
-      bool* shutdown;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, cudaStream_t stream, bool* shutdown) :
+      int* shutdown;
+      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, cudaStream_t stream, int* shutdown) :
         phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), q(q), stream(stream), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
@@ -720,7 +728,7 @@ namespace Megakernel
       }
     };
   public:
-    void execute(int phase = 0, cudaStream_t stream = 0, bool* shutdown = NULL)
+    void execute(int phase = 0, cudaStream_t stream = 0, int* shutdown = NULL)
     {
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,false> TCore;
 
@@ -741,7 +749,7 @@ namespace Megakernel
 
   public:
     template<int Phase, int TimeLimitInKCycles>
-    void execute(cudaStream_t stream = 0, bool* shutdown = NULL)
+    void execute(cudaStream_t stream = 0, int* shutdown = NULL)
     {
       typedef CurrentMultiphaseQueue<Q, Phase> ThisQ;
 
@@ -773,8 +781,8 @@ namespace Megakernel
       uint4 sharedMem;
       int timeLimit;
       Q* q;
-      bool* shutdown;
-      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, int timeLimit) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
+      int* shutdown;
+      LaunchVisitor(Q* q, int phase, int blocks, int blockSize, int sharedMemSum, uint4 sharedMem, int timeLimit, int* shutdown) : phase(phase), blocks(blocks), blockSize(blockSize), sharedMemSum(sharedMemSum), sharedMem(sharedMem), timeLimit(timeLimit), q(q), shutdown(shutdown) { }
 
       template<class TProcInfo, class TQueue, int Phase> 
       bool visit()
@@ -788,7 +796,7 @@ namespace Megakernel
       }
     };
   public:
-    void execute(int phase = 0, cudaStream_t stream = 0, double timelimitInMs = 0, bool* shutdown = NULL)
+    void execute(int phase = 0, cudaStream_t stream = 0, double timelimitInMs = 0, int* shutdown = NULL)
     {
       typedef TechniqueCore<QUEUE,PROCINFO,ApplicationContext,maxShared,LoadToShared,MultiElement,false,true> TCore;
 

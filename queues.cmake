@@ -12,8 +12,12 @@ SET(GENERAL
 )
 SET(TECHNIQUE_SOURCES
 	${SOURCE_DIR}/techniqueMegakernel.cuh
+	${SOURCE_DIR}/techniqueMegakernel.cu
 	${SOURCE_DIR}/techniqueDynamicParallelism.cuh
 	${SOURCE_DIR}/techniqueKernels.cuh
+	${SOURCE_DIR}/techniqueKernels.cu
+	${SOURCE_DIR}/delay.cuh
+	${SOURCE_DIR}/delay.cu
 )
 SET(QUEUE_SOURCES
 	${SOURCE_DIR}/segmentedStorage.cuh
