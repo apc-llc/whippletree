@@ -15,6 +15,7 @@ set(CUDA_SEPARABLE_COMPILATION ON)
 
 SET(TEST_SOURCES
   DynamicTaskManager.cu
+  DynamicTaskManagerInternal.cu
   matmul.cu
 )
 

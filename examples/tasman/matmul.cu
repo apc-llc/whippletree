@@ -5,6 +5,18 @@
 #include <time.h>
 #include <tools/utils.h>
 
+#include "queueDistLocks.cuh"
+#include "queueShared.cuh"
+#include "queuingPerProc.cuh"
+#include "techniqueMegakernel.cuh"
+#include "techniqueKernels.cuh"
+#include "techniqueDynamicParallelism.cuh"
+#include "segmentedStorage.cuh"
+
+#include "procedureInterface.cuh"
+#include "procinfoTemplate.cuh"
+#include "random.cuh"
+
 #include "DynamicTaskManager.h"
 
 namespace Tools
@@ -336,6 +348,7 @@ public :
 			CUDA_CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
 
 			using namespace std;
+			using namespace tasman;
 		
 			// Register dynamic tasks.
 			// XXX Note: all dynamic tasks must be registered BEFORE
