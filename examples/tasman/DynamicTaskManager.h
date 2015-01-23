@@ -17,16 +17,18 @@ namespace tasman
 namespace
 {
 	using namespace tasman;
-
+#ifdef __CUDACC__
 	template<DynamicTaskFunction Func>	
 	__global__ void getfuncaddress(DynamicTaskInfo* info);
+#endif
 }
 
 namespace tasman
 {
+#ifdef __CUDACC__
 	extern __device__ DynamicTaskInfo* submission;
 	extern __device__ int finish;
-
+#endif
 	struct DynamicTaskInfo
 	{
 		DynamicTaskFunction func;
@@ -47,13 +49,13 @@ namespace tasman
 		static DynamicTask* Create()
 		{
 			DynamicTask* task = new DynamicTask();
-
+#ifdef __CUDACC__
 			CUDA_CHECKED_CALL(cudaMalloc(&task->info, sizeof(DynamicTaskInfo)));
 
 			// Determine the given task function address on device.
 			getfuncaddress<Func><<<1, 1>>>(task->info);
 			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
-		
+#endif		
 			return task;
 		}
 
@@ -86,6 +88,7 @@ namespace tasman
 	};
 }
 
+#ifdef __CUDACC__
 namespace
 {
 	using namespace tasman;
@@ -96,4 +99,5 @@ namespace
 		info->func = Func;
 	}
 }
+#endif
 
