@@ -10,11 +10,7 @@ option(CUDA_BUILD_INFO "Build with kernel statistics and line numbers" TRUE)
 option(CUDA_BUILD_DEBUG "Build with kernel debug" FALSE)
 option(CUDA_ENABLE_CUPTI_INSTRUMENTATION "enable CUPTI instrumentation" TRUE)
 
-if(CUDA_BUILD_CC35 OR CUDA_BUILD_CC50_NODYN)
-	find_package(CUDA_DLINK REQUIRED)
-else()
-	find_package(CUDA REQUIRED)
-endif()
+find_package(CUDA REQUIRED)
 
 set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE OFF CACHE BOOL "ATTACH")
 if(WIN32)
@@ -29,7 +25,7 @@ if (NOT WIN32)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-std=c++11;")
 endif ()
 # CC 2.0 is always required for printf
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20;")
+#set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20;")
 
 if(CUDA_BUILD_CC30)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_30,code=sm_30;")
