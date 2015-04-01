@@ -68,7 +68,7 @@ namespace
 
 	typedef Megakernel::SimplePointed16336<MyQueue, ProcInfo<Task>, void, Megakernel::ShutdownIndicator> MyTechnique;
 
-	class DynamicTaskManagerInternal
+	class DynamicTaskManagerInternal : private NonCopyable<DynamicTaskManagerInternal>
 	{
 		cudaStream_t stream1, stream2;
 		int* address;
@@ -76,9 +76,6 @@ namespace
 		MyTechnique technique;
 
 		DynamicTaskManagerInternal();
-
-		DynamicTaskManagerInternal(DynamicTaskManagerInternal const&);
-		void operator=(DynamicTaskManagerInternal const&);
 
 	public :
 
