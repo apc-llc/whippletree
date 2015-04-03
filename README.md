@@ -19,7 +19,7 @@ ACM Transactions on Graphics (Proc. SIGGRAPH Asia 2014), December 2014. To appea
 
 ## Getting started
 
-### Building on Linux
+### Building CUDA version on Linux
 
 *On Linux the CUDA compiler with C++11 support (CUDA 6.5RC or later) and cmake are required.*
 
@@ -27,10 +27,10 @@ Clone the source tree and build basic examples:
 
 ```
 $ git clone https://github.com/apc-llc/whippletree.git
-$ cd whippletree/examples/queuing
+$ cd whippletree/examples/queuing/cuda
 $ mkdir build
 $ cd build
-$ cmake ..
+$ cmake -DCUDA_BUILD_CC30=TRUE ..
 $ make
 ```
 
@@ -42,10 +42,10 @@ Clone the source tree and build basic examples:
 
 ```
 > git clone https://github.com/apc-llc/whippletree.git
-> cd whippletree\examples\queuing
+> cd whippletree\examples\cuda\queuing
 > mkdir build
 > cd build
-> cmake -DCUDA_TOOLKIT_ROOT_DIR="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5" ..
+> cmake -DCUDA_BUILD_CC30=TRUE -DCUDA_TOOLKIT_ROOT_DIR="C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5" ..
 ```
 
 Then open `Example` VC++ project in Visual Studio and build `Example` target.
@@ -58,10 +58,11 @@ Three different procedures are defined using `proc0.cuh`, `proc1.cuh` and `proc2
 $ ./queuing
 ```
 
-If launch fails, you may need to add code generation for Compute Capability of your GPU and recompile:
+### Debugging of CUDA version
+
+Uncomment the following lines in `cmake/cuda/common.cmake`:
 
 ```
-$ cmake -DCUDA_BUILD_CC30=TRUE ..
-$ make 
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-g;-G;-O0;")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
 ```
-
