@@ -1,4 +1,3 @@
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR})
 
 option(CUDA_BUILD_CC30 "Build with compute capability 3.0 support" FALSE)
@@ -58,4 +57,3 @@ if (NOT WIN32)
 endif ()
 
 include_directories(${CUDA_INCLUDE_DIRS})
-include_directories(${GPUSchedulingRoot}/components/core)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+set(SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
 
 SET(GENERAL
 	${SOURCE_DIR}/timing.h
@@ -41,8 +41,6 @@ SOURCE_GROUP("Techniques" FILES
 )
 
 set(queues_SOURCES ${GENERAL} ${TECHNIQUE_SOURCES} ${QUEUE_SOURCES})
-
-# add_library(queues STATIC ${queues_SOURCES})
 
 #set(queues_LIBRARY queues PARENT_SCOPE)
 set(queues_INCLUDE_DIR "${SOURCE_DIR}")
