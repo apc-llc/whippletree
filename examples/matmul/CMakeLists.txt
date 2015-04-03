@@ -11,8 +11,6 @@ include(../../queues.cmake)
 #set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-g;-G;-O0;")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
 
-set(CUDA_SEPARABLE_COMPILATION ON)
-
 SET(TEST_SOURCES
   matmul.cu
 )

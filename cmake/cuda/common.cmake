@@ -56,4 +56,7 @@ if (NOT WIN32)
 	set(CMAKE_CXX_FLAGS "-std=c++11") 
 endif ()
 
+# We have GPU global variables defined in multiple .cu files
+set(CUDA_SEPARABLE_COMPILATION ON)
+
 include_directories(${CUDA_INCLUDE_DIRS})
