@@ -34,6 +34,9 @@
 #define TOOLS_UTILS_INCLUDED
 
 #include <cstdio>
+#if defined(_OPENCL)
+#include <CL/cl.h>
+#endif
 
 #define CUDA_CHECKED_CALL(x) do { cudaError_t err = x; if (( err ) != cudaSuccess ) { \
 	printf ("Error \"%s\" at %s :%d \n" , cudaGetErrorString(err), \
