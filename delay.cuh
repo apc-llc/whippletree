@@ -33,7 +33,7 @@
 #pragma once
 
 
-extern __device__ volatile float BigData[1024*1024];
+extern __device__ volatile float* BigData();
 
 template<int ITS, int REGS = 16>
 class DelayClock
@@ -48,7 +48,7 @@ public:
     float values[REGS-2];
     #pragma unroll
     for(int r = 0; r < REGS; ++r)
-      values[r] = BigData[threadIdx.x+r*32];
+      values[r] = BigData()[threadIdx.x+r*32];
     __threadfence_block();
     #pragma unroll
     for(int r = 0; r < REGS; ++r)
@@ -63,7 +63,7 @@ public:
     }
     #pragma unroll
     for(int r = 0; r < REGS; ++r)
-       BigData[threadIdx.x+r*32] =  values[r];
+       BigData()[threadIdx.x+r*32] =  values[r];
   }
   static std::string name() { return "DelayClock";/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "available Giga Cycles (" + std::to_string((long long)REGS) + "regs)";}
@@ -92,7 +92,7 @@ public:
     float values[REGS];
     #pragma unroll
     for(int r = 0; r < REGS; ++r)
-      values[r] = BigData[threadIdx.x+r*32];
+      values[r] = BigData()[threadIdx.x+r*32];
     #pragma unroll
     for(int i = 0; i < (ITS+REGS-1)/REGS; ++i)
     {
@@ -103,7 +103,7 @@ public:
     }
     #pragma unroll
     for(int r = 0; r < REGS; ++r)
-       BigData[threadIdx.x+r*32] =  values[r];
+       BigData()[threadIdx.x+r*32] =  values[r];
   }
   static std::string name() { return "DelayFMADS";/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "GFLOPS (" + std::to_string((long long)REGS) + "regs)";}
@@ -134,13 +134,13 @@ public:
     float values[REGS];
     #pragma unroll
     for(int r = 0; r < REGS; ++r)
-      values[r] = BigData[threadIdx.x+r*32];
+      values[r] = BigData()[threadIdx.x+r*32];
     #pragma unroll
     for(int i = 0; i < (ITS-1+REGS-1)/REGS; ++i)
     {
       #pragma unroll
       for(int r = 0; r < REGS; ++r)
-        BigData[threadIdx.x+r*32] = values[r]*values[r];
+        BigData()[threadIdx.x+r*32] = values[r]*values[r];
       __threadfence_block();  
     }
   }
