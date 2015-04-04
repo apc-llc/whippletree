@@ -59,4 +59,10 @@ endif ()
 # We have GPU global variables defined in multiple .cu files
 set(CUDA_SEPARABLE_COMPILATION ON)
 
+# Enable/disable debugging
+#set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-g;-G;-O0;")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+
 include_directories(${CUDA_INCLUDE_DIRS})
+
+add_definitions(-D_CUDA)

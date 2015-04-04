@@ -2,18 +2,16 @@ cmake_minimum_required(VERSION 2.8)
 
 project(queuing)
 
-include(../../cmake/cuda/common.cmake)
-include(../../cmake/cuda/queues.cmake)
+include(../../../cmake/cuda/common.cmake)
+include(../../../cmake/cuda/queues.cmake)
 
-#set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-g;-G;-O0;")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+set(SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 
 SET(TEST_SOURCES
-  proc0.cuh
-  proc1.cuh
-  proc2.cuh
-  test.cu
-  main.cpp
+  ${SOURCE_DIR}/proc0.cuh
+  ${SOURCE_DIR}/proc1.cuh
+  ${SOURCE_DIR}/proc2.cuh
+  ${SOURCE_DIR}/main.cu
 )
 
 if(CUDA_BUILD_CC35)

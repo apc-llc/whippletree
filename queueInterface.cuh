@@ -31,6 +31,7 @@
 //
 
 #pragma once
+#include <cstdio>
 #include <string>
 
 template<bool TWarnings = true>

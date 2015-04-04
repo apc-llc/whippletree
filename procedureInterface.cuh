@@ -32,7 +32,6 @@
 
 #pragma once
 
-#include <cuda_runtime_api.h>
 #include "tools/common.cuh"
 #include "tools/types.h"
 
