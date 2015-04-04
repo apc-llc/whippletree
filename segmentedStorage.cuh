@@ -132,18 +132,18 @@ namespace SegmentedStorage
   void reinitStorage()
   {
     if(StoragePointer == 0)
-      CUDA_CHECKED_CALL(cudaMalloc(&StoragePointer, Storage::StorageSize));
+      CHECKED_CALL(cudaMalloc(&StoragePointer, Storage::StorageSize));
     initStorage<Storage::StorageSize, Storage::BlockSize><<<512,512>>>(StoragePointer);
-    CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+    CHECKED_CALL(cudaDeviceSynchronize());
   }
 
 
   template<class Storage>
   void createStorage()
   {
-    CUDA_CHECKED_CALL(cudaMalloc(&StoragePointer, Storage::StorageSize));
+    CHECKED_CALL(cudaMalloc(&StoragePointer, Storage::StorageSize));
     initStorage<Storage::StorageSize, Storage::BlockSize><<<512,512>>>(StoragePointer);
-    CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+    CHECKED_CALL(cudaDeviceSynchronize());
     pReinitStorage = &reinitStorage<Storage>;
   }
 

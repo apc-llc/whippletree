@@ -248,7 +248,7 @@ namespace DynamicParallelism
 
         //launch initial kernel
         initLaunch<TQ,TProcInfo, CUSTOM><<<4, technique.blockSize[Phase], technique.sharedMem[Phase].y*4>>>(reinterpret_cast<TQ*>(q.get()), technique.sharedMem[Phase]);
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
 
         PointInTime end;
       
@@ -276,9 +276,9 @@ namespace DynamicParallelism
     void init()
     {
       int d;
-      CUDA_CHECKED_CALL(cudaGetDevice(&d));
+      CHECKED_CALL(cudaGetDevice(&d));
       cudaDeviceProp prop;
-      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&prop, d));
+      CHECKED_CALL(cudaGetDeviceProperties(&prop, d));
       freq = static_cast<int>(static_cast<unsigned long long>(prop.clockRate)*1000/1024);
       if(prop.major*10 + prop.minor < 35)
       {
@@ -289,7 +289,7 @@ namespace DynamicParallelism
       q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
 
       initQueue<Q> <<<512, 512>>>(q.get());
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
 
       InitPhaseVisitor v(*this);
         Q::template staticVisit<InitPhaseVisitor>(v);
@@ -308,7 +308,7 @@ namespace DynamicParallelism
       else
       {
         recordData<Q><<<1, 1>>>(q.get());
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
 
@@ -328,7 +328,7 @@ namespace DynamicParallelism
 
       int b = min((num + 512 - 1)/512,104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
     }
 
     std::string name() const
@@ -619,7 +619,7 @@ namespace DynamicParallelism
           dynamicParallelismController<TProcInfo,CUSTOM,TQ,NoCopy,1><<<1,32>>>(reinterpret_cast<TQ*>(q.get()), timeLimitInKCycles);
         else
           dynamicParallelismController<TProcInfo,CUSTOM,TQ,NoCopy,0><<<1,32>>>(reinterpret_cast<TQ*>(q.get()), timeLimitInKCycles);
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
 
         PointInTime end;
 
@@ -637,9 +637,9 @@ namespace DynamicParallelism
     void init()
     {
       int d;
-      CUDA_CHECKED_CALL(cudaGetDevice(&d));
+      CHECKED_CALL(cudaGetDevice(&d));
       cudaDeviceProp prop;
-      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&prop, d));
+      CHECKED_CALL(cudaGetDeviceProperties(&prop, d));
       freq = static_cast<int>(static_cast<unsigned long long>(prop.clockRate)*1000/1024);
       if(prop.major*10 + prop.minor < 35)
       {
@@ -650,7 +650,7 @@ namespace DynamicParallelism
       q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
 
       initQueue<Q> <<<512, 512>>>(q.get());
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
     }
 
       void resetQueue()
@@ -665,7 +665,7 @@ namespace DynamicParallelism
       else
       {
         recordData<Q><<<1, 1>>>(q.get());
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
 
@@ -685,7 +685,7 @@ namespace DynamicParallelism
 
       int b = min((num + 512 - 1)/512,104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
     }
 
     std::string name() const

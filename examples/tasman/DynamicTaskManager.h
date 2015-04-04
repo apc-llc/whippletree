@@ -1,7 +1,7 @@
 #include <cstdio>
 
-#ifndef CUDA_CHECKED_CALL
-#define CUDA_CHECKED_CALL(x) do { cudaError_t err = x; if (( err ) != cudaSuccess ) { \
+#ifndef CHECKED_CALL
+#define CHECKED_CALL(x) do { cudaError_t err = x; if (( err ) != cudaSuccess ) { \
         printf ("Error \"%s\" at %s :%d \n" , cudaGetErrorString(err), \
                         __FILE__ , __LINE__ ) ; exit(-1);\
 }} while (0)
@@ -50,11 +50,11 @@ namespace tasman
 		{
 			DynamicTask* task = new DynamicTask();
 #ifdef __CUDACC__
-			CUDA_CHECKED_CALL(cudaMalloc(&task->info, sizeof(DynamicTaskInfo)));
+			CHECKED_CALL(cudaMalloc(&task->info, sizeof(DynamicTaskInfo)));
 
 			// Determine the given task function address on device.
 			getfuncaddress<Func><<<1, 1>>>(task->info);
-			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+			CHECKED_CALL(cudaDeviceSynchronize());
 #endif		
 			return task;
 		}

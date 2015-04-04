@@ -11,7 +11,7 @@ void* SegmentedStorage::StoragePointer = 0;
 void SegmentedStorage::destroyStorage()
 {
 	if(StoragePointer != 0)
-		CUDA_CHECKED_CALL(cudaFree(&StoragePointer));
+		CHECKED_CALL(cudaFree(&StoragePointer));
 	StoragePointer = 0;
 	pReinitStorage = 0;
 }

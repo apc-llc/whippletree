@@ -30,67 +30,25 @@
 //  THE SOFTWARE.
 //
 
-
-
 #ifndef TOOLS_UTILS_INCLUDED
 #define TOOLS_UTILS_INCLUDED
 
+#include <cstdio>
 
-#include <string>
-//#include <sstream>
-#include <stdexcept>
+#define CUDA_CHECKED_CALL(x) do { cudaError_t err = x; if (( err ) != cudaSuccess ) { \
+	printf ("Error \"%s\" at %s :%d \n" , cudaGetErrorString(err), \
+		__FILE__ , __LINE__ ) ; exit(-1); \
+}} while (0)
 
-namespace Tools
-{
+#define CL_CHECKED_CALL(x) do { cl_int err = x; if (( err ) != CL_SUCCESS ) { \
+	printf ("Error \"%d\" at %s :%d \n" , err, \
+		__FILE__ , __LINE__ ) ; exit(-1); \
+}} while (0)
 
-
-    class CudaError : public std::runtime_error
-    {
-    private:
-      static __host__ std::string genErrorString(cudaError error, const char* file, int line)
-      {
-        //std::ostringstream msg;
-        //msg << file << '(' << line << "): error: " << cudaGetErrorString(error);
-        //return msg.str();
-        return std::string(file) + '(' + std::to_string(static_cast<long long>(line)) + "): error: " + cudaGetErrorString(error);
-      }
-    public:
-      __host__ CudaError(cudaError error, const char* file, int line)
-        : runtime_error(genErrorString(error, file, line))
-      {
-      }
-
-      __host__ CudaError(cudaError error)
-        : runtime_error(cudaGetErrorString(error))
-      {
-      }
-
-      __host__ CudaError(const std::string& msg)
-        : runtime_error(msg)
-      {
-      }
-    };
-  inline __host__ void checkError(cudaError error, const char* file, int line)
-  {
-    if (error != cudaSuccess)
-      throw CudaError(error, file, line);
-  }
-
-  inline __host__ void checkError(const char* file, int line)
-  {
-    checkError(cudaGetLastError(), file, line);
-  }
-
-  inline __host__ void checkError()
-  {
-    cudaError error = cudaGetLastError();
-    if (error != cudaSuccess)
-      throw CudaError(error);
-  }
-}
-#define CUDA_CHECKED_CALL(call) Tools::checkError(call, __FILE__, __LINE__)
-#define CUDA_CHECK_ERROR() Tools::checkError(__FILE__, __LINE__)
-#define CUDA_IGNORE_CALL(call) call; cudaGetLastError();
-
+#if defined(_CUDA)
+#define CHECKED_CALL CUDA_CHECKED_CALL
+#elif defined(_OPENCL)
+#define CHECKED_CALL CL_CHECKED_CALL
+#endif
 
 #endif  // TOOLS_UTILS_INCLUDED

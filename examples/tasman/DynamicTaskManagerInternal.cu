@@ -88,7 +88,7 @@ namespace
 	{
 		// Determine address of finishing marker to supply it into
 		// the technique.
-		CUDA_CHECKED_CALL(cudaGetSymbolAddress((void**)&address, finish));
+		CHECKED_CALL(cudaGetSymbolAddress((void**)&address, finish));
 	}
 
 	DynamicTaskManagerInternal& DynamicTaskManagerInternal::get()

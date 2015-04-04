@@ -259,13 +259,13 @@ public :
 		float*& C = hconfig.C;
 		hconfig.n = n;
 	
-		CUDA_CHECKED_CALL(cudaMalloc(&A, sizeof(float) * n * n));
-		CUDA_CHECKED_CALL(cudaMalloc(&B, sizeof(float) * n * n));
-		CUDA_CHECKED_CALL(cudaMalloc(&C, sizeof(float) * n * n));
+		CHECKED_CALL(cudaMalloc(&A, sizeof(float) * n * n));
+		CHECKED_CALL(cudaMalloc(&B, sizeof(float) * n * n));
+		CHECKED_CALL(cudaMalloc(&C, sizeof(float) * n * n));
 
-		CUDA_CHECKED_CALL(cudaMemcpy(A, Ah, sizeof(float) * n * n, cudaMemcpyHostToDevice));
-		CUDA_CHECKED_CALL(cudaMemcpy(B, Bh, sizeof(float) * n * n, cudaMemcpyHostToDevice));
-		CUDA_CHECKED_CALL(cudaMemcpy(C, Ch, sizeof(float) * n * n, cudaMemcpyHostToDevice));
+		CHECKED_CALL(cudaMemcpy(A, Ah, sizeof(float) * n * n, cudaMemcpyHostToDevice));
+		CHECKED_CALL(cudaMemcpy(B, Bh, sizeof(float) * n * n, cudaMemcpyHostToDevice));
+		CHECKED_CALL(cudaMemcpy(C, Ch, sizeof(float) * n * n, cudaMemcpyHostToDevice));
 
 		if (version == MatmulVersion::CUBLAS)
 		{		
@@ -280,7 +280,7 @@ public :
 				cublasOperation_t::CUBLAS_OP_T, cublasOperation_t::CUBLAS_OP_T,
 				n, n, n, &fone, A, n, B, n, &fzero, C, n));
 			
-			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+			CHECKED_CALL(cudaDeviceSynchronize());
 
 			volatile struct timespec finish;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
@@ -300,8 +300,8 @@ public :
 		    dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
     		dim3 blocks( n / threads.x, n / threads.y);
 			cuda_matmul<<<blocks, threads>>>(A, B, C, n);
-			CUDA_CHECKED_CALL(cudaGetLastError());
-			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+			CHECKED_CALL(cudaGetLastError());
+			CHECKED_CALL(cudaDeviceSynchronize());
 
 			volatile struct timespec finish;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
@@ -317,7 +317,7 @@ public :
 			hconfig.gridDim_.x = n / hconfig.blockDim_.x;
 			hconfig.gridDim_.y = n / hconfig.blockDim_.y;
 
-			CUDA_CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
+			CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
 
 			MyTechnique technique;
 			technique.init();
@@ -328,7 +328,7 @@ public :
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&start);
 
 			technique.execute(0);
-			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+			CHECKED_CALL(cudaDeviceSynchronize());
 
 			volatile struct timespec finish;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
@@ -345,7 +345,7 @@ public :
 			hconfig.gridDim_.x = n / hconfig.blockDim_.x;
 			hconfig.gridDim_.y = n / hconfig.blockDim_.y;
 
-			CUDA_CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
+			CHECKED_CALL(cudaMemcpyToSymbol(config, &hconfig, sizeof(MatmulConfig)));
 
 			using namespace std;
 			using namespace tasman;
@@ -367,8 +367,8 @@ public :
 			for (int i = 0; i < ntasks; i++)
 				hindexes[i] = i;
 			uint* dindexes = NULL;
-			CUDA_CHECKED_CALL(cudaMalloc(&dindexes, sizeof(uint) * ntasks));
-			CUDA_CHECKED_CALL(cudaMemcpy(dindexes, hindexes, sizeof(uint) * ntasks, cudaMemcpyHostToDevice));
+			CHECKED_CALL(cudaMalloc(&dindexes, sizeof(uint) * ntasks));
+			CHECKED_CALL(cudaMemcpy(dindexes, hindexes, sizeof(uint) * ntasks, cudaMemcpyHostToDevice));
 
 			volatile struct timespec start;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&start);
@@ -384,7 +384,7 @@ public :
 			// Signal dynamic task manager to shutdown (after all tasks
 			// are done).
 			dtm.stop();
-			CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+			CHECKED_CALL(cudaDeviceSynchronize());
 
 			volatile struct timespec finish;
 			clock_gettime(CLOCK_REALTIME, (struct timespec*)&finish);
@@ -393,15 +393,15 @@ public :
 				*time = (float)((double)0.000000001 * (finish.tv_nsec - start.tv_nsec) +
 					finish.tv_sec - start.tv_sec);
 
-			CUDA_CHECKED_CALL(cudaFree(dindexes));
+			CHECKED_CALL(cudaFree(dindexes));
 			delete[] hindexes;
 		}
 
-		CUDA_CHECKED_CALL(cudaMemcpy(Ch, C, sizeof(float) * n * n, cudaMemcpyDeviceToHost));
+		CHECKED_CALL(cudaMemcpy(Ch, C, sizeof(float) * n * n, cudaMemcpyDeviceToHost));
 
-		CUDA_CHECKED_CALL(cudaFree(A));
-		CUDA_CHECKED_CALL(cudaFree(B));
-		CUDA_CHECKED_CALL(cudaFree(C));
+		CHECKED_CALL(cudaFree(A));
+		CHECKED_CALL(cudaFree(B));
+		CHECKED_CALL(cudaFree(C));
 	}
 };
 
@@ -416,14 +416,14 @@ int main(int argc, char** argv)
 	}
 
 	int count;
-	CUDA_CHECKED_CALL(cudaGetDeviceCount(&count));
+	CHECKED_CALL(cudaGetDeviceCount(&count));
 	if (!count)
 	{
 		cerr << "No CUDA devices available" << endl;
 		return -1;
 	}
 	cudaDeviceProp deviceProp;
-	CUDA_CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, 0));
+	CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, 0));
 	cout << "Using device: " << deviceProp.name << endl;
 
 	size_t n = (size_t)strtoull(argv[1], NULL, 0);

@@ -87,7 +87,7 @@ typedef Megakernel::DynamicPointed16336<MyQueue, TestProcInfo> MyTechnique;
 int main(int argc, char* argv[])
 {
 	int count;
-	CUDA_CHECKED_CALL(cudaGetDeviceCount(&count));
+	CHECKED_CALL(cudaGetDeviceCount(&count));
 	if (!count)
 	{
 		std::cerr << "No CUDA devices available" << std::endl;
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	cudaDeviceProp deviceProp;
-	CUDA_CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, 0));
+	CHECKED_CALL(cudaGetDeviceProperties(&deviceProp, 0));
 	std::cout << "Using device: " << deviceProp.name << std::endl;
 
 	//create everything
@@ -110,11 +110,11 @@ int main(int argc, char* argv[])
 
 #if defined(_CUDA)
 	cudaStream_t stream;
-	CUDA_CHECKED_CALL(cudaStreamCreate(&stream));
+	CHECKED_CALL(cudaStreamCreate(&stream));
 	cudaEvent_t a, b;
-	CUDA_CHECKED_CALL(cudaEventCreate(&a));
-	CUDA_CHECKED_CALL(cudaEventCreate(&b));
-	CUDA_CHECKED_CALL(cudaEventRecord(a, stream));
+	CHECKED_CALL(cudaEventCreate(&a));
+	CHECKED_CALL(cudaEventCreate(&b));
+	CHECKED_CALL(cudaEventRecord(a, stream));
 #elif defined(_OPENCL)
 	// TODO Measure time
 #endif
@@ -122,13 +122,13 @@ int main(int argc, char* argv[])
 	technique.execute(0, stream);
 
 #if defined(_CUDA)
-	CUDA_CHECKED_CALL(cudaEventRecord(b, stream));
-	CUDA_CHECKED_CALL(cudaEventSynchronize(b));
-	CUDA_CHECKED_CALL(cudaEventElapsedTime(&time, a, b));
+	CHECKED_CALL(cudaEventRecord(b, stream));
+	CHECKED_CALL(cudaEventSynchronize(b));
+	CHECKED_CALL(cudaEventElapsedTime(&time, a, b));
 	time /= 1000.0;
-	CUDA_CHECKED_CALL(cudaEventDestroy(a));
-	CUDA_CHECKED_CALL(cudaEventDestroy(b));
-	CUDA_CHECKED_CALL(cudaStreamDestroy(stream));
+	CHECKED_CALL(cudaEventDestroy(a));
+	CHECKED_CALL(cudaEventDestroy(b));
+	CHECKED_CALL(cudaStreamDestroy(stream));
 #elif defined(_OPENCL)
 	// TODO Measure time
 #endif

@@ -230,9 +230,9 @@ namespace KernelLaunches
         int work = 1;
         while(work > 0)
         {
-          CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+          CHECKED_CALL(cudaDeviceSynchronize());
           readCounts<TQ><<<1,1>>>(reinterpret_cast<TQ*>(technique.q.get()));
-          CUDA_CHECKED_CALL(cudaMemcpyFromSymbol(&procCounts[0], queueCounts, sizeof(int)*numProcs));
+          CHECKED_CALL(cudaMemcpyFromSymbol(&procCounts[0], queueCounts, sizeof(int)*numProcs));
           work = 0;
 
           typedef ProcLaunchEntry<TQ, TProcInfo, NoCopy>  MyProcLaunchEntry;
@@ -241,7 +241,7 @@ namespace KernelLaunches
 
           if(timeLimitInS > 0)
           {
-            CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+            CHECKED_CALL(cudaDeviceSynchronize());
             execT = PointInTime() - start;
             if(execT > timeLimitInS)
               return true;
@@ -249,7 +249,7 @@ namespace KernelLaunches
           }
         }
 
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
 
         PointInTime end;
         execT = end - start;
@@ -276,19 +276,19 @@ namespace KernelLaunches
       q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
       SegmentedStorage::checkReinitStorage();
       initQueue<Q> <<<512, 512>>>(q.get());
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
       if(streams.size() < numProcs)
       {
         streams.resize(numProcs,0);
         if(Streams)
           for(int i = 0; i < streams.size(); ++i)
-            CUDA_CHECKED_CALL(cudaStreamCreate(&streams[i]));
+            CHECKED_CALL(cudaStreamCreate(&streams[i]));
       }
 
       int dev;
       cudaDeviceProp props;
-      CUDA_CHECKED_CALL(cudaGetDevice(&dev));
-      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
+      CHECKED_CALL(cudaGetDevice(&dev));
+      CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
       freq = props.clockRate;
     }
 
@@ -304,7 +304,7 @@ namespace KernelLaunches
       else
       {
         recordData<Q><<<1, 1>>>(q.get());
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
 
@@ -323,7 +323,7 @@ namespace KernelLaunches
 
       int b = min((num + 512 - 1)/512,104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
     }
 
   

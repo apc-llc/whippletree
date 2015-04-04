@@ -581,13 +581,13 @@ namespace Megakernel
 
         //get number of blocks to start - gk110 screwes with mutices...
         int nblocks = 0;
-        CUDA_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocks, &nblocks, sizeof(int)));
-        CUDA_CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
+        CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocks, &nblocks, sizeof(int)));
+        CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
         megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
-        CUDA_CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
+        CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
         technique.blocks[Phase] = nblocks;
         //std::cout << "blocks: " << blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
@@ -600,8 +600,8 @@ namespace Megakernel
     void preCall(cudaStream_t stream)
     {
       int magic = 2597, null = 0;
-      CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(doneCounter, &null, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
-      CUDA_CHECKED_CALL(cudaMemcpyToSymbolAsync(endCounter, &magic, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
+      CHECKED_CALL(cudaMemcpyToSymbolAsync(doneCounter, &null, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
+      CHECKED_CALL(cudaMemcpyToSymbolAsync(endCounter, &magic, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
     }
 
     void postCall(cudaStream_t stream)
@@ -615,12 +615,12 @@ namespace Megakernel
       q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
 
       int magic = 2597, null = 0;
-      CUDA_CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
-      CUDA_CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
+      CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
+      CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
 
       SegmentedStorage::checkReinitStorage();
       initQueue<Q> <<<512, 512>>>(q.get());
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
 
 
       InitPhaseVisitor v(*this);
@@ -628,8 +628,8 @@ namespace Megakernel
 
       cudaDeviceProp props;
       int dev;
-      CUDA_CHECKED_CALL(cudaGetDevice(&dev));
-      CUDA_CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
+      CHECKED_CALL(cudaGetDevice(&dev));
+      CHECKED_CALL(cudaGetDeviceProperties(&props, dev));
       freq = static_cast<int>(static_cast<unsigned long long>(props.clockRate)*1000/1024);
     }
 
@@ -645,7 +645,7 @@ namespace Megakernel
       else
       {
         recordData<Q><<<1, 1>>>(q.get());
-        CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+        CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
 
@@ -670,7 +670,7 @@ namespace Megakernel
 
       int b = min((num + 512 - 1)/512,104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
-      CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+      CHECKED_CALL(cudaDeviceSynchronize());
     }
 
     int BlockSize(int phase = 0) const
