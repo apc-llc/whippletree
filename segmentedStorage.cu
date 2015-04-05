@@ -2,23 +2,17 @@
 #include "queueHelpers.cuh"
 #include "segmentedStorage.cuh"
 
-void (*SegmentedStorage::pReinitStorage)() = 0;
+namespace
+{
+	__device__ void* storage_ = NULL;
+}
 
-__device__ void* storage = NULL;
+__device__ void** storage()
+#if defined(_CUDA)
+{ return &::storage_; }
+#elif defined(_OPENCL)
+{ /* TODO */ return NULL; }
+#endif
 
 void* SegmentedStorage::StoragePointer = 0;
-
-void SegmentedStorage::destroyStorage()
-{
-	if(StoragePointer != 0)
-		CHECKED_CALL(cudaFree(&StoragePointer));
-	StoragePointer = 0;
-	pReinitStorage = 0;
-}
-
-void SegmentedStorage::checkReinitStorage()
-{
-	if(pReinitStorage != 0)
-		pReinitStorage();
-}
 

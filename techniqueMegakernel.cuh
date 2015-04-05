@@ -45,12 +45,6 @@
 #include "procinfoTemplate.cuh"
 #include "queuingMultiPhase.cuh"
 
-
-namespace SegmentedStorage
-{
-  void checkReinitStorage();
-}
-
 namespace Megakernel
 {
   enum MegakernelStopCriteria
@@ -618,7 +612,6 @@ namespace Megakernel
       CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
       CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
 
-      SegmentedStorage::checkReinitStorage();
       initQueue<Q> <<<512, 512>>>(q.get());
       CHECKED_CALL(cudaDeviceSynchronize());
 

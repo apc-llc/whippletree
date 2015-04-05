@@ -45,11 +45,6 @@
 #include "queueInterface.cuh"
 #include "queuingMultiPhase.cuh"
 
-namespace SegmentedStorage
-{
-  void checkReinitStorage();
-}
-
 namespace KernelLaunches
 {
   static const int MaxProcs = 1024;
@@ -274,7 +269,6 @@ namespace KernelLaunches
       }
 
       q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
-      SegmentedStorage::checkReinitStorage();
       initQueue<Q> <<<512, 512>>>(q.get());
       CHECKED_CALL(cudaDeviceSynchronize());
       if(streams.size() < numProcs)

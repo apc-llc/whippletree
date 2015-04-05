@@ -38,9 +38,8 @@
 
 namespace SegmentedStorage
 {
+  extern __device__ void** storage();
 
-  extern void (*pReinitStorage)();
-  extern __device__ void* storage;
   template<int TStorageSize, int TBlockSize>
   class Storage
   {
@@ -114,7 +113,7 @@ namespace SegmentedStorage
 
     static __inline__ __device__ Storage* get()
     {
-      return reinterpret_cast<Storage<StorageSize, BlockSize>*>(storage);
+      return reinterpret_cast<Storage<StorageSize, BlockSize>*>(*storage());
     }
   };
 
@@ -123,7 +122,7 @@ namespace SegmentedStorage
   template<int StorageSize, int BlockSize>
   __global__ void initStorage(void* data)
   {
-    storage = data;
+    *storage() = data;
     Storage<StorageSize, BlockSize>* s = reinterpret_cast<Storage<StorageSize, BlockSize>*>(data);
     s->init();
   }
@@ -136,21 +135,6 @@ namespace SegmentedStorage
     initStorage<Storage::StorageSize, Storage::BlockSize><<<512,512>>>(StoragePointer);
     CHECKED_CALL(cudaDeviceSynchronize());
   }
-
-
-  template<class Storage>
-  void createStorage()
-  {
-    CHECKED_CALL(cudaMalloc(&StoragePointer, Storage::StorageSize));
-    initStorage<Storage::StorageSize, Storage::BlockSize><<<512,512>>>(StoragePointer);
-    CHECKED_CALL(cudaDeviceSynchronize());
-    pReinitStorage = &reinitStorage<Storage>;
-  }
-
-  void destroyStorage();
-
-  void checkReinitStorage();
- 
 
   template<uint TQueueSize, uint ElementsPerBlock, class SharedStorage>
   class SegmentedQueueStorageBase
