@@ -48,8 +48,10 @@
 namespace KernelLaunches
 {
   static const int MaxProcs = 1024;
-  extern __device__ int queueCounts[MaxProcs];
-
+#if defined(_CUDA)
+  extern __device__ int queueCountsVar[MaxProcs];
+#endif
+  __device__ int* queueCounts();
 
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
@@ -74,7 +76,7 @@ namespace KernelLaunches
   template<class Q>
   __global__ void readCounts(Q* q)
   {
-    q->numEntries(queueCounts);
+    q->numEntries(queueCounts());
   }
 
   template<class PROC, class CUSTOM, class Q, bool NoCopy>
@@ -227,7 +229,11 @@ namespace KernelLaunches
         {
           CHECKED_CALL(cudaDeviceSynchronize());
           readCounts<TQ><<<1,1>>>(reinterpret_cast<TQ*>(technique.q.get()));
-          CHECKED_CALL(cudaMemcpyFromSymbol(&procCounts[0], queueCounts, sizeof(int)*numProcs));
+#if defined(_CUDA)
+          CHECKED_CALL(cudaMemcpyFromSymbol(&procCounts[0], queueCountsVar, sizeof(int)*numProcs));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
           work = 0;
 
           typedef ProcLaunchEntry<TQ, TProcInfo, NoCopy>  MyProcLaunchEntry;

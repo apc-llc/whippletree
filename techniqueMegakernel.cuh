@@ -47,6 +47,13 @@
 
 namespace Megakernel
 {
+#if defined(_CUDA)
+  extern __device__ volatile int doneCounterVar;
+  extern __device__ volatile int endCounterVar;
+#endif
+  extern __device__ int* doneCounter();
+  extern __device__ int* endCounter();
+
   enum MegakernelStopCriteria
   {
     // Stop megakernel, when the task queue is empty.
@@ -56,9 +63,6 @@ namespace Megakernel
     // and "shutdown" indicator is filled with "true" value.
     ShutdownIndicator,
   };
-
-  extern __device__ volatile int doneCounter;
-  extern __device__ volatile int endCounter;
 
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
@@ -219,9 +223,12 @@ namespace Megakernel
 
 #undef PROCCALLNOCOPYPART
 
-  extern __device__ int maxConcurrentBlocks;
-  extern __device__ volatile int maxConcurrentBlockEvalDone;
-
+#if defined(_CUDA)
+  extern __device__ int maxConcurrentBlocksVar;
+  extern __device__ volatile int maxConcurrentBlockEvalDoneVar;
+#endif
+  extern __device__ int* maxConcurrentBlocks();
+  extern __device__ int* maxConcurrentBlockEvalDone();
 
   template<class Q, MegakernelStopCriteria StopCriteria, bool Maintainer>
   class MaintainerCaller;
@@ -245,7 +252,7 @@ namespace Megakernel
           __syncthreads();
           if(runs > 10)
           {
-            if(endCounter == 0)
+            if(*endCounter() == 0)
             {
               if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
                 run = false;
@@ -411,13 +418,13 @@ namespace Megakernel
   {
     if(q == 0)
     {
-      if(maxConcurrentBlockEvalDone != 0)
+      if(*maxConcurrentBlockEvalDone() != 0)
         return;
       if(threadIdx.x == 0)
-        atomicAdd(&maxConcurrentBlocks, 1);
+        atomicAdd(maxConcurrentBlocks(), 1);
       DelayFMADS<10000,4>::delay();
       __syncthreads();
-      maxConcurrentBlockEvalDone = 1;
+      *maxConcurrentBlockEvalDone() = 1;
       __threadfence();
       return;
     }
@@ -430,13 +437,13 @@ namespace Megakernel
 
     if(threadIdx.x == 0)
     {
-      if(endCounter == 0)
+      if(*endCounter() == 0)
         runState = 0;
       else
       {
-        atomicAdd((int*)&doneCounter,1);
-        if(atomicAdd((int*)&endCounter,1) == 2597)
-          atomicSub((int*)&endCounter, 2597);
+        atomicAdd((int*)doneCounter(),1);
+        if(atomicAdd(endCounter(),1) == 2597)
+          atomicSub(endCounter(), 2597);
         runState = 1;
       }
     }
@@ -456,14 +463,14 @@ namespace Megakernel
           {
             //back on working
             runState = 1;
-            atomicAdd((int*)&doneCounter,1);
-            atomicAdd((int*)&endCounter,1);
+            atomicAdd(doneCounter(),1);
+            atomicAdd(endCounter(),1);
           }
           else if(runState == 2)
           {
             //back on working
             runState = 1;
-            atomicAdd((int*)&doneCounter,1);
+            atomicAdd((int*)doneCounter(),1);
           }
         }
         else
@@ -472,30 +479,30 @@ namespace Megakernel
           if(runState == 1)
           {
             //first time we are out of work
-            atomicSub((int*)&doneCounter,1);
+            atomicSub((int*)doneCounter(),1);
             runState = 2;
           }
           else if(runState == 2)
           {
-            if(doneCounter == 0)
+            if(*doneCounter() == 0)
             {
               //everyone seems to be out of work -> get ready for end
-              atomicSub((int*)&endCounter,1);
+              atomicSub(endCounter(),1);
               runState = 3;
             }
           }
           else if(runState == 3)
           {
-            int d = doneCounter;
-            int e = endCounter;
+            int d = *doneCounter();
+            int e = *endCounter();
             //printf("%d %d %d\n",blockIdx.x, d, e);
-            if(doneCounter != 0)
+            if(*doneCounter() != 0)
             {
               //someone started to work again
-              atomicAdd((int*)&endCounter,1);
+              atomicAdd(endCounter(),1);
               runState = 2;
             }
-            else if(endCounter == 0)
+            else if(*endCounter() == 0)
             {
               //everyone is really out of work
               if(StopCriteria == MegakernelStopCriteria::EmptyQueue)
@@ -575,13 +582,25 @@ namespace Megakernel
 
         //get number of blocks to start - gk110 screwes with mutices...
         int nblocks = 0;
-        CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocks, &nblocks, sizeof(int)));
-        CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDone, &nblocks, sizeof(int)));
+#if defined(_CUDA)
+        CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocksVar, &nblocks, sizeof(int)));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
+#if defined(_CUDA)
+        CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDoneVar, &nblocks, sizeof(int)));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
         megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
 
         CHECKED_CALL(cudaDeviceSynchronize());
-        CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocks, sizeof(int)));
+#if defined(_CUDA)
+        CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocksVar, sizeof(int)));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
         technique.blocks[Phase] = nblocks;
         //std::cout << "blocks: " << blocks << std::endl;
         if(technique.blocks[Phase]  == 0)
@@ -594,8 +613,16 @@ namespace Megakernel
     void preCall(cudaStream_t stream)
     {
       int magic = 2597, null = 0;
-      CHECKED_CALL(cudaMemcpyToSymbolAsync(doneCounter, &null, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
-      CHECKED_CALL(cudaMemcpyToSymbolAsync(endCounter, &magic, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
+#if defined(_CUDA)
+      CHECKED_CALL(cudaMemcpyToSymbolAsync(doneCounterVar, &null, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
+#if defined(_CUDA)
+      CHECKED_CALL(cudaMemcpyToSymbolAsync(endCounterVar, &magic, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
     }
 
     void postCall(cudaStream_t stream)
@@ -609,8 +636,16 @@ namespace Megakernel
       q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
 
       int magic = 2597, null = 0;
-      CHECKED_CALL(cudaMemcpyToSymbol(doneCounter, &null, sizeof(int)));
-      CHECKED_CALL(cudaMemcpyToSymbol(endCounter, &magic, sizeof(int)));
+#if defined(_CUDA)
+      CHECKED_CALL(cudaMemcpyToSymbol(doneCounterVar, &null, sizeof(int)));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
+#if defined(_CUDA)
+      CHECKED_CALL(cudaMemcpyToSymbol(endCounterVar, &magic, sizeof(int)));
+#elif defined(_OPENCL)
+#error "Implement in OpenCL"
+#endif
 
       initQueue<Q> <<<512, 512>>>(q.get());
       CHECKED_CALL(cudaDeviceSynchronize());
