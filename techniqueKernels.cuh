@@ -35,7 +35,11 @@
 #include <vector>
 #include <iostream>
 #include <tools/utils.h>
+#if defined(_CUDA)
 #include <tools/cuda_memory.h>
+#elif defined(_OPENCL)
+#include <tools/cl_memory.h>
+#endif
 #include "timing.h"
 #include "delay.cuh"
 
@@ -198,7 +202,7 @@ namespace KernelLaunches
 
   protected:
     std::vector<cudaStream_t> streams;
-    std::unique_ptr<Q, cuda_deleter> q;
+    std::unique_ptr<Q, device_ptr_deleter> q;
 
     int freq;
 
@@ -274,7 +278,7 @@ namespace KernelLaunches
         return;
       }
 
-      q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
+      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
       initQueue<Q> <<<512, 512>>>(q.get());
       CHECKED_CALL(cudaDeviceSynchronize());
       if(streams.size() < numProcs)

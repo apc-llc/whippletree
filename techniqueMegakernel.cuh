@@ -35,7 +35,11 @@
 #include <memory>
 #include <vector>
 #include <tools/utils.h>
+#if defined(_CUDA)
 #include <tools/cuda_memory.h>
+#elif defined(_OPENCL)
+#include <tools/cl_memory.h>
+#endif
 #include <iostream>
 #include "timing.h"
 #include "delay.cuh"
@@ -536,7 +540,7 @@ namespace Megakernel
 
   protected:    
     
-    std::unique_ptr<Q, cuda_deleter> q;
+    std::unique_ptr<Q, device_ptr_deleter> q;
 
     int blockSize[PROCINFO::NumPhases];
     int blocks[PROCINFO::NumPhases];
@@ -633,7 +637,7 @@ namespace Megakernel
 
     void init()
     {
-      q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
+      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
 
       int magic = 2597, null = 0;
 #if defined(_CUDA)

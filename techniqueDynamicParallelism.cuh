@@ -36,7 +36,11 @@
 
 #include <tools/utils.h>
 #include <tools/types.h>
+#if defiend(_CUDA)
 #include <tools/cuda_memory.h>
+#elif defined(_OPENCL)
+#include <tools/cl_memory.h>
+#endif
 #include "timing.h"
 #include "delay.cuh"
 #include "queueInterface.cuh"
@@ -264,7 +268,7 @@ namespace DynamicParallelism
     int blockSize[PROCINFO::NumPhases];
     uint4 sharedMem[PROCINFO::NumPhases];
 
-    std::unique_ptr<Q, cuda_deleter> q;
+    std::unique_ptr<Q, device_ptr_deleter> q;
 
     int freq;
 
@@ -286,7 +290,7 @@ namespace DynamicParallelism
         return;
       }
 
-      q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
+      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
 
       initQueue<Q> <<<512, 512>>>(q.get());
       CHECKED_CALL(cudaDeviceSynchronize());
@@ -592,7 +596,7 @@ namespace DynamicParallelism
     typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
 
   protected:
-    std::unique_ptr<Q, cuda_deleter> q;
+    std::unique_ptr<Q, device_ptr_deleter> q;
 
     int freq;
 
@@ -647,7 +651,7 @@ namespace DynamicParallelism
         return;
       }
 
-      q = std::unique_ptr<Q, cuda_deleter>(cudaAlloc<Q>());
+      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
 
       initQueue<Q> <<<512, 512>>>(q.get());
       CHECKED_CALL(cudaDeviceSynchronize());
