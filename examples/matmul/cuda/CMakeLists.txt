@@ -5,11 +5,13 @@ project(matmul)
 # Block size for shared block matrix multiplication
 add_definitions(-DBLOCK_SIZE=32)
 
-include(../../cmake/common.cmake)
-include(../../queues.cmake)
+include(../../../cmake/cuda/common.cmake)
+include(../../../cmake/cuda/queues.cmake)
+
+set(SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 
 SET(TEST_SOURCES
-  matmul.cu
+  ${SOURCE_DIR}/matmul.cu
 )
 
 if(CUDA_BUILD_CC35)
