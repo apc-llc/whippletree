@@ -39,7 +39,6 @@ typedef unsigned short ushort;
 
 namespace Tools
 {
-
   struct dim
   {
     union
@@ -56,4 +55,23 @@ namespace Tools
     }
   };
 }
+
+#if defined(_OPENCL)
+struct int4
+{
+  int x, y, z, w;
+};
+
+static int4 make_int4(int x, int y, int z, int w)
+{
+  int4 result;
+  result.x = x; result.y = y; result.z = z; result.w = w;
+}
+
+struct uint4
+{
+  int x, y, z, w;
+};
+#endif
+
 #endif //TOOLS_TYPES_INCLUDED
