@@ -172,7 +172,7 @@ protected:
    __inline__ __device__ int reserveRead(int maxnum, bool only_read_all = false)
   {
     __shared__ int num;
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
     {
       if(OverflowUnderflowCheck)
       {
@@ -201,7 +201,7 @@ protected:
 
   __inline__ __device__ void finishRead(int id, int num)
   {
-    if(OverflowUnderflowCheck && threadIdx.x == 0)
+    if(OverflowUnderflowCheck && threadIdx_x == 0)
     {
       int prev = atomicSub(&writeCount, num);
       //printf("finishread %d %d : %d->%d %d %d %d\n",id,num, prev, prev-num,readyCount,front,back);
@@ -244,7 +244,7 @@ public:
     __shared__ int offset;
     if(num > 0)
     {
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
         offset = atomicAdd(&front, num);    
       __syncthreads();
       if(pos < num)
@@ -280,7 +280,7 @@ class QueueCollector<TElementSize, TQueueSize, void, TAssertOnOverflow, TWarpOpt
     __shared__ int offset;
     if(num > 0)
     {
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
         offset = atomicAdd(&front, num);    
       __syncthreads();
       if(pos < num)

@@ -60,9 +60,9 @@ __device__ __inline__ int warpBroadcast(int val, int who)
   for(int offset = 0; offset < 32; offset += Mod)
   {
     if(Tools::laneid() - offset == who)
-      comm[threadIdx.x/32] = val;
+      comm[threadIdx_x/32] = val;
     if(Tools::laneid() < offset + Mod)
-      return comm[threadIdx.x/32];
+      return comm[threadIdx_x/32];
   }
   return val;
 #else
@@ -87,11 +87,11 @@ __device__ __inline__ int warpShfl(int val, int who)
     for(int within = 0; within < Mod; ++within)
     {
       if(Tools::laneid() == runid)
-        comm[threadIdx.x/32] = val;
+        comm[threadIdx_x/32] = val;
       if( Tools::laneid() >= offset 
         && Tools::laneid() < offset + Mod 
         && (runid % Mod) == ((who + 32) % Mod) )
-        res = comm[threadIdx.x/32];
+        res = comm[threadIdx_x/32];
       ++runid;
     }
   }
@@ -111,10 +111,10 @@ template<int Maxrand>
 __device__ __inline__ void backoff(int num)
 {
 
-  volatile int local = threadIdx.x;
+  volatile int local = threadIdx_x;
   for(int i = 0; i < (whippletree::random::rand() % Maxrand); ++i)
   {
-    local += num*threadIdx.x/(i+1234);
+    local += num*threadIdx_x/(i+1234);
     __threadfence();
   }
 }
@@ -735,9 +735,9 @@ public:
       
     uint2 offset_take = QueueStub::dequeuePrep(num);
 
-    if(threadIdx.x < offset_take.y)
+    if(threadIdx_x < offset_take.y)
     {
-      readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, addtionalData + threadIdx.x, offset_take.x + threadIdx.x);
+      readData(reinterpret_cast<uint*>(data) + threadIdx_x * ElementSize, addtionalData + threadIdx_x, offset_take.x + threadIdx_x);
       __threadfence();
     }
     __syncthreads();
@@ -810,9 +810,9 @@ public:
   __inline__ __device__ int dequeue(void* data, int num)
   {
     uint2 offset_take = QueueStub::dequeuePrep(num);
-    if(threadIdx.x < offset_take.y)
+    if(threadIdx_x < offset_take.y)
     {
-      TQueueStorage::readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, offset_take.x + threadIdx.x);
+      TQueueStorage::readData(reinterpret_cast<uint*>(data) + threadIdx_x * ElementSize, offset_take.x + threadIdx_x);
       __threadfence();
     }
     __syncthreads();
@@ -837,7 +837,7 @@ public:
 
   __inline__ __device__ void init()
   {
-    uint lid = threadIdx.x + blockIdx.x*blockDim.x;
+    uint lid = threadIdx_x + blockIdx_x*blockDim.x;
     if(lid == 0)
       allocPointer = 0;
   }
@@ -882,8 +882,8 @@ public:
 
   __inline__ __device__ void init()
   {
-    uint lid = threadIdx.x + blockIdx.x*blockDim.x;
-    for(int i = lid; i < (AllocElements + 31)/32; i += blockDim.x*gridDim.x)
+    uint lid = threadIdx_x + blockIdx_x*blockDim.x;
+    for(int i = lid; i < (AllocElements + 31)/32; i += blockDim.x*gridDim_x)
       flags[i] = 0;
     if(lid == 0)
       allocPointer = 0;
@@ -966,8 +966,8 @@ public:
     MemAlloc<TQueueSize*(TAvgElementSize + (TAvgElementSize > 8 || AdditionalDataInfo<TAdditionalData>::size > 8 ? (sizeof(TAdditionalData)+15)/16*16 :  TAvgElementSize > 4 || AdditionalDataInfo<TAdditionalData>::size > 4 ? (sizeof(TAdditionalData)+7)/8*8 : 4))>::init();
     if(TCheckSet)
     {
-       uint lid = threadIdx.x + blockIdx.x*blockDim.x;
-       for(uint i = lid; i < 2*TQueueSize; i+=blockDim.x*gridDim.x)
+       uint lid = threadIdx_x + blockIdx_x*blockDim.x;
+       for(uint i = lid; i < 2*TQueueSize; i+=blockDim.x*gridDim_x)
          ((uint*)offsetStorage)[i] = 0;
     }
   }
@@ -1046,9 +1046,9 @@ public:
   __inline__ __device__ void storageFinishRead(uint2 pos)
   {
      
-    if(threadIdx.x < pos.y)
+    if(threadIdx_x < pos.y)
     {
-      uint p = (pos.x + threadIdx.x) % TQueueSize;
+      uint p = (pos.x + threadIdx_x) % TQueueSize;
 
       OffsetData_T offsetData;
       offsetData  = offsetStorage[p];
@@ -1089,8 +1089,8 @@ public:
     MemAlloc<TAvgElementSize*TQueueSize>::init();
     if(TCheckSet)
     {
-       uint lid = threadIdx.x + blockIdx.x*blockDim.x;
-       for(uint i = lid; i < 2*TQueueSize; i+=blockDim.x*gridDim.x)
+       uint lid = threadIdx_x + blockIdx_x*blockDim.x;
+       for(uint i = lid; i < 2*TQueueSize; i+=blockDim.x*gridDim_x)
          ((uint*)offsetStorage)[i] = 0;
     }
   }
@@ -1163,9 +1163,9 @@ public:
   }*/
   __inline__ __device__ void storageFinishRead(uint2 pos)
   {
-     if(threadIdx.x < pos.y)
+     if(threadIdx_x < pos.y)
     {
-      uint p = (pos.x + threadIdx.x) % TQueueSize;
+      uint p = (pos.x + threadIdx_x) % TQueueSize;
       OffsetData_T offsetData;
       offsetData  = offsetStorage[p];
       uint2 offset = *reinterpret_cast<uint2*>(&offsetData);

@@ -115,7 +115,7 @@ __device__ __inline__ int getThreadOffset()
 {
   if(!MultiElement && !PROCEDURE::ItemInput)
     return 0;
-  return PROCEDURE::NumThreads > 0 ? threadIdx.x/PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? threadIdx.x : 0);
+  return PROCEDURE::NumThreads > 0 ? threadIdx_x/PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? threadIdx_x : 0);
 }
 
 

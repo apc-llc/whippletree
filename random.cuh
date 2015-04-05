@@ -49,7 +49,7 @@ namespace whippletree { namespace random
   __device__ __inline__
   int rand()
   {
-    clock_t m1 = (40009 + clock())/16*19281 + (61*threadIdx.x + 811*Tools::smid() + 127*Tools::warpid()) * 8231;
+    clock_t m1 = (40009 + clock())/16*19281 + (61*threadIdx_x + 811*Tools::smid() + 127*Tools::warpid()) * 8231;
     clock_t m2 = 36969 * (m1 & 65535) + (m1 >> 16);
     return m2 & 65535;
   }
@@ -80,7 +80,7 @@ namespace whippletree { namespace random
   {
     __shared__ bool res;
     __syncthreads();
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
       res = check(percent);
     __syncthreads();
     return res;

@@ -192,7 +192,7 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
 
 #ifndef MATMUL_USE_SHARED
 	int ia = (blockDim.y * blockIdx.y + threadIdx.y) * n;
-	int ib = blockDim.x * blockIdx.x + threadIdx.x;
+	int ib = blockDim.x * blockIdx_x + threadIdx_x;
 	int ic = ia + ib;
 
 	// Multiply two matrices
@@ -201,10 +201,10 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
 #else
     // Base indexes inside A and B
     int ia = (blockDim.y * blockIdx.y) * n;
-    int ib = blockDim.x * blockIdx.x;
+    int ib = blockDim.x * blockIdx_x;
     
     // Subindex inside a "tile"
-    int tileidx = n * threadIdx.y + threadIdx.x;
+    int tileidx = n * threadIdx.y + threadIdx_x;
     
     // Index in C
     int ic = ia + ib + tileidx;
@@ -219,15 +219,15 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
     for (; aoff < n; aoff += blockDim.x, boff += blockDim.y * n)
     {
         // Load the "tile" matrices from global memory to shared memory
-        As [threadIdx.y][threadIdx.x] = A [ia + aoff + tileidx];
-        Bs [threadIdx.y][threadIdx.x] = B [ib + boff + tileidx];
+        As [threadIdx.y][threadIdx_x] = A [ia + aoff + tileidx];
+        Bs [threadIdx.y][threadIdx_x] = B [ib + boff + tileidx];
 
         // Synchronize to make sure the matrices are loaded
         __syncthreads();
 
         // Multiply the two matrices
         for (int k = 0; k < BLOCK_SIZE; k++)
-            sum += As [threadIdx.y][k] * Bs [k][threadIdx.x];
+            sum += As [threadIdx.y][k] * Bs [k][threadIdx_x];
 
         // Synchronize to make sure that the preceding
         // computation is done before loading two new

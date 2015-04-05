@@ -127,9 +127,9 @@ class PerProcedureVersatileQueue : public ::Queue<>
           int nItems = Procedure::sharedMemory != 0 ? min(blockDim.x/itemThreadCount, _maxShared / ((uint)sizeof(typename Procedure::ExpectedData) + Procedure::sharedMemory)) :  min(blockDim.x/itemThreadCount, _maxShared / ((uint)sizeof(typename Procedure::ExpectedData)));
           nItems = min(nItems, getElementCount<Procedure, MultiProcedure>());
           _haveSomething = q.dequeue(_data, nItems);
-          if(threadIdx.x < _haveSomething*itemThreadCount)
+          if(threadIdx_x < _haveSomething*itemThreadCount)
           {
-            _data = reinterpret_cast<char*>(_data) + sizeof(typename Procedure::ExpectedData)*(threadIdx.x/itemThreadCount);
+            _data = reinterpret_cast<char*>(_data) + sizeof(typename Procedure::ExpectedData)*(threadIdx_x/itemThreadCount);
             _haveSomething *= itemThreadCount; 
             _procId[0] = findProcId<ProcedureInfo, Procedure>::value;
           }
@@ -187,7 +187,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
           _haveSomething = q.reserveRead(nItems);
           if(_haveSomething != 0)
           {
-            int id = q.startRead(_data, threadIdx.x/itemThreadCount, _haveSomething);
+            int id = q.startRead(_data, threadIdx_x/itemThreadCount, _haveSomething);
             _haveSomething *= itemThreadCount; 
             _procId[0] = findProcId<ProcedureInfo, Procedure>::value;
             _procId[1] = id;

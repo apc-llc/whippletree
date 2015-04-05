@@ -36,7 +36,7 @@
 
 #include <tools/utils.h>
 #include <tools/types.h>
-#if defiend(_CUDA)
+#if defined(_CUDA)
 #include <tools/cuda_memory.h>
 #elif defined(_OPENCL)
 #include <tools/cl_memory.h>
@@ -59,8 +59,8 @@ namespace DynamicParallelism
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num, int frame)
   {
-    int id = blockIdx.x*blockDim.x + threadIdx.x;
-    for( ; id < num; id += blockDim.x*gridDim.x)
+    int id = blockIdx_x*blockDim.x + threadIdx_x;
+    for( ; id < num; id += blockDim.x*gridDim_x)
     {
       InitProc::template init<Q>(q, id, frame);
     }
@@ -104,7 +104,7 @@ namespace DynamicParallelism
     template<int threads, class PROCEDURE>
     __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData* data) 
     {
-      if(threadIdx.x % threads == 0)
+      if(threadIdx_x % threads == 0)
         enqueue<PROCEDURE>(*data);
       return true;
     }
@@ -122,8 +122,8 @@ namespace DynamicParallelism
       else
         num = blockDim.x;
     }
-    if(threadIdx.x < num)
-      PROC:: template execute<DynQueue, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx.x, num, nullptr, &data, s_data);
+    if(threadIdx_x < num)
+      PROC:: template execute<DynQueue, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, num, nullptr, &data, s_data);
   }
 
 
@@ -132,7 +132,7 @@ namespace DynamicParallelism
   //nThreads = PROCINFO:: Procedure ## PROCID :: NumThreads; \
   //if(nThreads == 0) \
   //  nThreads = PROCINFO:: Procedure ## PROCID :: ItemInput ? 1 : 256; \
-  //if(threadIdx.x % nThreads == 0) \
+  //if(threadIdx_x % nThreads == 0) \
   //  launchKernel<typename PROCINFO:: Procedure ## PROCID>(*reinterpret_cast<typename PROCINFO:: Procedure ## PROCID::ExpectedData*>(execData)); \
   //break; \
 
@@ -151,7 +151,7 @@ namespace DynamicParallelism
       if(findProcId<ProcInfo,TProcedure>::value == procId)
       {
         int nThreads = TProcedure::NumThreads == 0 ? ( Procedure::ItemInput? 1 : 256) : TProcedure::NumThreads;
-        if(threadIdx.x % nThreads == 0)
+        if(threadIdx_x % nThreads == 0)
           launchKernel<TProcedure, CUSTOM>(*reinterpret_cast<typename TProcedure::ExpectedData*>(execData)); 
         return true;
       }
@@ -168,7 +168,7 @@ namespace DynamicParallelism
 #else
     int arch = 0;
 #endif
-    if(blockIdx.x == 0 && threadIdx.x == 0)
+    if(blockIdx_x == 0 && threadIdx_x == 0)
       printf("Error: Dynamic Parallelism needs Compute Capability 3.5 or higher (using %d)\n", arch);
 #else
     __shared__ volatile int runState;
@@ -382,8 +382,8 @@ namespace DynamicParallelism
   {
     extern __shared__ uint s_data[];
     uint* sdata = (uint*)((((unsigned long long)s_data)+15)/16*16);
-    int elements = (pullElements + gridDim.x - 1) / gridDim.x;
-    elements = max(0,min(elements, pullElements - elements * blockIdx.x));
+    int elements = (pullElements + gridDim_x - 1) / gridDim_x;
+    elements = max(0,min(elements, pullElements - elements * blockIdx_x));
 
     
     if(elements > 0)
@@ -395,24 +395,24 @@ namespace DynamicParallelism
       const int threads = getThreadCount<PROC>();
       if(NoCopy)
       {
-        if(threadIdx.x < threads*elements)
-          PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx.x, threads*elements, q, reinterpret_cast<typename PROC::ExpectedData*>(execData), sdata);
+        if(threadIdx_x < threads*elements)
+          PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, threads*elements, q, reinterpret_cast<typename PROC::ExpectedData*>(execData), sdata);
       }
       else
       {
-        if(threadIdx.x < elements*threads)
+        if(threadIdx_x < elements*threads)
         {
           typename PROC::ExpectedData* pdata = reinterpret_cast<typename PROC::ExpectedData*>(execData);
           *(typename PROC::ExpectedData*)(sdata + sizeof(typename PROC::ExpectedData)/sizeof(uint)*getThreadOffset<PROC, false>()) = *pdata;
         }
 
-        if(threadIdx.x < threads*elements)
-          PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx.x, threads*elements, q, reinterpret_cast<typename PROC::ExpectedData*>(sdata + threadIdx.x/threads*sizeof(typename PROC::ExpectedData)/sizeof(uint)), sdata + sizeof(typename PROC::ExpectedData)/sizeof(uint)*elements);    
+        if(threadIdx_x < threads*elements)
+          PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, threads*elements, q, reinterpret_cast<typename PROC::ExpectedData*>(sdata + threadIdx_x/threads*sizeof(typename PROC::ExpectedData)/sizeof(uint)), sdata + sizeof(typename PROC::ExpectedData)/sizeof(uint)*elements);    
       }
       __syncthreads();
       q-> template finishRead<PROC>(id, elements);
     }
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
       atomicSub(&inFlightBlocks, 1);
   }
 
@@ -505,7 +505,7 @@ namespace DynamicParallelism
 #else
     int arch = 0;
 #endif
-    if(blockIdx.x == 0 && threadIdx.x == 0)
+    if(blockIdx_x == 0 && threadIdx_x == 0)
       printf("Error: Dynamic Parallelism needs Compute Capability 3.5 or higher (using %d)\n", arch);
 
 #else
@@ -516,14 +516,14 @@ namespace DynamicParallelism
 
     startTime = clock64();
 
-    if(threadIdx.x < PROCINFO::NumProcedures)
+    if(threadIdx_x < PROCINFO::NumProcedures)
     {
-      queueCounts[threadIdx.x] = 0;
-      execStats[threadIdx.x] = make_int2(0,0);
-      cudaStreamCreateWithFlags(streams + threadIdx.x, cudaStreamNonBlocking);
+      queueCounts[threadIdx_x] = 0;
+      execStats[threadIdx_x] = make_int2(0,0);
+      cudaStreamCreateWithFlags(streams + threadIdx_x, cudaStreamNonBlocking);
     }
     __syncthreads();
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
     {
       int lastLaunched = 0;
       int zerolaunches = 0;
@@ -579,9 +579,9 @@ namespace DynamicParallelism
     
     __syncthreads();
     // FIXME: commented out for the moment cause it was causing "invalid memory access" error when running PGA with instrumentation ON
-     /*if(threadIdx.x < 16)
+     /*if(threadIdx_x < 16)
     {
-      cudaStreamDestroy(streams[threadIdx.x]);
+      cudaStreamDestroy(streams[threadIdx_x]);
     }*/
 #endif
   }

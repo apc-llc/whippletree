@@ -65,7 +65,7 @@ namespace SegmentedStorage
     {
       count = NumBlocks;
       back = front = 0;
-      for(int id = threadIdx.x + blockIdx.x*blockDim.x; id < NumBlocks; id += gridDim.x*blockDim.x)
+      for(int id = threadIdx_x + blockIdx_x*blockDim.x; id < NumBlocks; id += gridDim_x*blockDim.x)
         available[id] = id;
     }
 
@@ -194,7 +194,7 @@ namespace SegmentedStorage
         {
           blockoffset = SharedStorage::get()->request();
 #ifdef DEBUG_STORAGE
-          printf("%d %d requests new block for %d(%d), got %d \n",blockIdx.x, threadIdx.x, block, pos, blockoffset);
+          printf("%d %d requests new block for %d(%d), got %d \n",blockIdx_x, threadIdx_x, block, pos, blockoffset);
 #endif
           if(blockoffset == -1)
           {
@@ -215,7 +215,7 @@ namespace SegmentedStorage
             if(oldid != -1)
             {
 #ifdef DEBUG_STORAGE
-              printf("%d %d putting block back: %d (requested by %d(%d))\n",blockIdx.x, threadIdx.x, blockoffset, block, pos);
+              printf("%d %d putting block back: %d (requested by %d(%d))\n",blockIdx_x, threadIdx_x, blockoffset, block, pos);
 #endif
               SharedStorage::get()->free(blockoffset);
               blockoffset = oldid;
@@ -243,19 +243,19 @@ namespace SegmentedStorage
     template<class TMyBlock>
     __inline__ __device__ void storageFinishRead(uint2 pos)
     {
-      int mypos = (pos.x + threadIdx.x) % TQueueSize;;
+      int mypos = (pos.x + threadIdx_x) % TQueueSize;;
       int prevblock = (mypos-1)/ElementsPerBlock;
       int myblock = mypos/ElementsPerBlock;
-      if(threadIdx.x < pos.y && (threadIdx.x == 0 || (myblock != prevblock)) )
+      if(threadIdx_x < pos.y && (threadIdx_x == 0 || (myblock != prevblock)) )
       {
-        int donelements = min((int)((myblock + 1)*ElementsPerBlock - mypos),(int)(pos.y-threadIdx.x));
+        int donelements = min((int)((myblock + 1)*ElementsPerBlock - mypos),(int)(pos.y-threadIdx_x));
         int bid = useBlocks[myblock];
         TMyBlock* b = reinterpret_cast<TMyBlock*>(SharedStorage::get()->indexToBlock(bid));
         if(b->doneuse(donelements))
         {
           useBlocks[myblock] = -1;
 #ifdef DEBUG_STORAGE
-          printf("%d %d freeing: %d\n",blockIdx.x, threadIdx.x, bid);
+          printf("%d %d freeing: %d\n",blockIdx_x, threadIdx_x, bid);
 #endif
           SharedStorage::get()->free(bid);
         }
@@ -273,8 +273,8 @@ namespace SegmentedStorage
   
     __inline__ __device__ void init()
     {
-      int id = blockIdx.x*blockDim.x + threadIdx.x;
-      for(int i = id; i < MaxBlocks; i+= blockDim.x*gridDim.x)
+      int id = blockIdx_x*blockDim.x + threadIdx_x;
+      for(int i = id; i < MaxBlocks; i+= blockDim.x*gridDim_x)
         useBlocks[i] = -1;
 #ifdef DEBUG_STORAGE
   if(id == 0)
@@ -328,7 +328,7 @@ namespace SegmentedStorage
       pos.x = pos.x%TQueueSize;
       int localpos = pos.x % ElementsPerBlock;
       MyBlock* b = Base:: template acquireBlock<MyBlock, 32>(pos.x);
-      if(threadIdx.x % TThreadsPerElenent == 0)
+      if(threadIdx_x % TThreadsPerElenent == 0)
         b->use();
 
       multiWrite<TThreadsPerElenent, T>(reinterpret_cast<volatile T*>(b->storage + localpos), data);
@@ -405,7 +405,7 @@ namespace SegmentedStorage
      pos.x = pos.x%TQueueSize;
       int localpos = pos.x % ElementsPerBlock;
       MyBlock* b = Base:: template acquireBlock<MyBlock, 32>(pos.x);
-      if(threadIdx.x % TThreadsPerElenent == 0)
+      if(threadIdx_x % TThreadsPerElenent == 0)
         b->use();
 
       multiWrite<TThreadsPerElenent, T>(reinterpret_cast<volatile T*>(b->storage + localpos), data);

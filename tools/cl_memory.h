@@ -33,8 +33,8 @@
 
 
 
-#ifndef INCLUDED_CUDA_PTR
-#define INCLUDED_CUDA_PTR
+#ifndef INCLUDED_CL_PTR
+#define INCLUDED_CL_PTR
 
 #pragma once
 
@@ -105,6 +105,7 @@ public:
 };
 
 
+#include <CL/cl.h>
 #include <memory>
 #include "utils.h"
 
@@ -112,27 +113,27 @@ struct device_ptr_deleter
 {
   void operator()(void* ptr)
   {
-    cudaFree(ptr);
+    CHECKED_CALL(clReleaseMemObject(ptr));
   }
 };
 
 template <typename T>
 inline std::unique_ptr<T, device_ptr_deleter> deviceAlloc()
 {
-  void* ptr;
   printf("trying to allocate %.2f MB cuda buffer (%zu bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
-  CHECKED_CALL(cudaMalloc(&ptr, sizeof(T)));
-  return std::unique_ptr<T, device_ptr_deleter>(static_cast<T*>(ptr));
+  cl_mem ptr = clCreateBuffer(getContext(), CL_MEM_READ_WRITE, sizeof(T));
+  CHECKED_CALL(status);
+  return std::unique_ptr<cl_mem, device_ptr_deleter>(static_cast<cl_mem>(ptr));
 }
 
 template <typename T>
 inline std::unique_ptr<T[], device_ptr_deleter> deviceAllocArray(size_t N)
 {
-  void* ptr;
   printf("trying to allocate %.2f MB cuda buffer (%zu * %zu bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
-  CHECKED_CALL(cudaMalloc(&ptr, N * sizeof(T)));
-  return std::unique_ptr<T[], device_ptr_deleter>(static_cast<T*>(ptr));
+  cl_mem ptr = clCreateBuffer(getContext(), CL_MEM_READ_WRITE, N * sizeof(T));
+  CHECKED_CALL(status);
+  return std::unique_ptr<cl_mem, device_ptr_deleter>(static_cast<cl_mem>(ptr));
 }
 
 
-#endif  // INCLUDED_CUDA_PTR
+#endif  // INCLUDED_CL_PTR

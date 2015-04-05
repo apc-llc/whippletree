@@ -71,8 +71,8 @@ namespace Megakernel
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
   {
-    int id = blockIdx.x*blockDim.x + threadIdx.x;
-    for( ; id < num; id += blockDim.x*gridDim.x)
+    int id = blockIdx_x*blockDim.x + threadIdx_x;
+    for( ; id < num; id += blockDim.x*gridDim_x)
     {
       InitProc::template init<Q>(q, id);
     }
@@ -105,8 +105,8 @@ namespace Megakernel
         nThreads = PROC::NumThreads;
       else
         nThreads = blockDim.x;
-      if(PROC::NumThreads == 0 || threadIdx.x < nThreads)
-        PROC :: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx.x, nThreads, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
+      if(PROC::NumThreads == 0 || threadIdx_x < nThreads)
+        PROC :: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, nThreads, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
   };
 
@@ -122,14 +122,14 @@ namespace Megakernel
       {
         int nThreads;
         nThreads = PROC::NumThreads;
-        int tid = threadIdx.x % PROC::NumThreads;
-        int offset = threadIdx.x / PROC::NumThreads;
-        if(threadIdx.x < hasData)
+        int tid = threadIdx_x % PROC::NumThreads;
+        int offset = threadIdx_x / PROC::NumThreads;
+        if(threadIdx_x < hasData)
           PROC :: template execute<Q, Context<PROC::NumThreads, true, CUSTOM> >(tid, nThreads, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared + offset*PROC::sharedMemory/sizeof(uint) );
       }
       else
       {
-        PROC :: template execute<Q, Context<PROC::NumThreads, true, CUSTOM> >(threadIdx.x, blockDim.x, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
+        PROC :: template execute<Q, Context<PROC::NumThreads, true, CUSTOM> >(threadIdx_x, blockDim.x, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
       }
       
     }
@@ -142,8 +142,8 @@ namespace Megakernel
     __device__ __inline__
     static void call(Q* queue, void* data, int numData, uint* shared)
     {
-      if(threadIdx.x < numData)
-        PROC :: template execute<Q, Context<PROC::NumThreads, MultiElement, CUSTOM> >(threadIdx.x, numData, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
+      if(threadIdx_x < numData)
+        PROC :: template execute<Q, Context<PROC::NumThreads, MultiElement, CUSTOM> >(threadIdx_x, numData, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
   };
 
@@ -244,7 +244,7 @@ namespace Megakernel
     static __inline__ __device__ bool RunMaintainer(Q* q, int* shutdown)
     {
       
-      if(blockIdx.x == 1)
+      if(blockIdx_x == 1)
       {
         __shared__ bool run;
         run = true;
@@ -393,7 +393,7 @@ namespace Megakernel
     unsigned long long  TimeLimiter_start;
     __device__ __inline__ TimeLimiter() 
     {
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
         TimeLimiter_start = clock64();
     }
     __device__ __inline__ bool stop(int tval)
@@ -408,7 +408,7 @@ namespace Megakernel
     unsigned long long  TimeLimiter_start;
     __device__ __inline__ TimeLimiter() 
     {
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
         TimeLimiter_start = clock64();
     }
     __device__ __inline__ bool stop(int tval)
@@ -424,7 +424,7 @@ namespace Megakernel
     {
       if(*maxConcurrentBlockEvalDone() != 0)
         return;
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
         atomicAdd(maxConcurrentBlocks(), 1);
       DelayFMADS<10000,4>::delay();
       __syncthreads();
@@ -439,7 +439,7 @@ namespace Megakernel
 
     __shared__ TimeLimiter timelimiter;
 
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
     {
       if(*endCounter() == 0)
         runState = 0;
@@ -457,7 +457,7 @@ namespace Megakernel
     while(runState)
     {
       int hasResult = MegakernelLogics<Q, PROCINFO, CUSTOM, CopyToShared, MultiElement, Q::needTripleCall>::run(q, sharedMemDist);
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
       {
         if(timelimiter.stop(t))
           runState = 0;
@@ -499,7 +499,7 @@ namespace Megakernel
           {
             int d = *doneCounter();
             int e = *endCounter();
-            //printf("%d %d %d\n",blockIdx.x, d, e);
+            //printf("%d %d %d\n",blockIdx_x, d, e);
             if(*doneCounter() != 0)
             {
               //someone started to work again

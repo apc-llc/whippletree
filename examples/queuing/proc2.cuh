@@ -91,6 +91,6 @@ public:
     Context::sync();
 
 	 if(threadId == numThreads-1)
-		printf("thread %d of %d excutes Proc2 for data %d (CUDA thread %d %d) and computed prefix sum: %d\n", threadId, numThreads, data->x, threadIdx.x, blockIdx.x, shared[threadId]);
+		printf("thread %d of %d excutes Proc2 for data %d (CUDA thread %d %d) and computed prefix sum: %d\n", threadId, numThreads, data->x, threadIdx_x, blockIdx_x, shared[threadId]);
   }
 };

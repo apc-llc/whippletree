@@ -363,13 +363,13 @@
 //        if(Itemized)
 //        {
 //          __shared__ int size;
-//          if(threadIdx.x == _startThread)
+//          if(threadIdx_x == _startThread)
 //            size = q.size();
 //          Softshell::syncthreads(2, _num);
 //          if(size >= _itemizedThreshold)
 //          {
 //            _hasSomething = q . dequeue(reinterpret_cast<typename Procedure::ExpectedData*>(_data), _procId, _startThread);
-//            if(threadIdx.x == _startThread)
+//            if(threadIdx_x == _startThread)
 //              _haveSomething = _hasSomething;
 //            Softshell::syncthreads(2, _num);
 //            return _haveSomething;
@@ -412,7 +412,7 @@
 //
 //    __inline__ __device__ int dequeue(QueueElement* data, int& procId, int startThread = 0)
 //    {
-//      if(threadIdx.x < startThread)
+//      if(threadIdx_x < startThread)
 //        return 0;
 //
 //      __shared__ int haveSomething;
@@ -437,7 +437,7 @@
 //      //{
 //      //  __syncthreads();
 //      //  int hasData = queues[qId]. template dequeue<DATA>(data, procId);
-//      //  if(threadIdx.x == 0)
+//      //  if(threadIdx_x == 0)
 //      //    haveSomething = hasData;
 //      //  __syncthreads();
 //      //  if(haveSomething)
@@ -477,12 +477,12 @@
 //    template<class PROCEDURE>
 //    __device__ bool enqueue(typename PROCEDURE::ExpectedData const& data) 
 //    {        
-//      return queues[blockIdx.x % MaxBlocks]. template enqueue<PROCEDURE>(data);
+//      return queues[blockIdx_x % MaxBlocks]. template enqueue<PROCEDURE>(data);
 //    }
 //
 //    __inline__ __device__ int dequeue(QueueElement* data, int& procId, int startThread = 0)
 //    {
-//      return queues[ blockIdx.x % MaxBlocks]. dequeue(data, procId);
+//      return queues[ blockIdx_x % MaxBlocks]. dequeue(data, procId);
 //    }
 //  };
 //
@@ -517,14 +517,14 @@
 //    template<class PROCEDURE>
 //    __device__ bool enqueue(typename PROCEDURE::ExpectedData const& data) 
 //    {        
-//      return queues[blockIdx.x % MaxBlocks]. template enqueue<PROCEDURE>(data);
+//      return queues[blockIdx_x % MaxBlocks]. template enqueue<PROCEDURE>(data);
 //    }
 //
 //    __inline__ __device__ int dequeue(QueueElement* data, int& procId, int startThread = 0)
 //    {
 //      __shared__ int haveSomething;
 //      haveSomething = 0;
-//      int b = blockIdx.x % MaxBlocks;
+//      int b = blockIdx_x % MaxBlocks;
 //      __syncthreads();
 //
 //      #pragma unroll
@@ -532,7 +532,7 @@
 //      {
 //        __syncthreads();
 //        int hasData = queues[b].dequeue(data, procId);
-//        if(threadIdx.x == 0)
+//        if(threadIdx_x == 0)
 //          haveSomething = hasData;
 //        __syncthreads();
 //        if(haveSomething)
@@ -590,13 +590,13 @@
 //    template<class PROCEDURE>
 //    __device__ bool enqueue(typename PROCEDURE::ExpectedData const& data) 
 //    {
-//      int qId = blockIdx.x % MaxBlocks;
+//      int qId = blockIdx_x % MaxBlocks;
 //      return enqueue<PROCEDURE>(qId, data);
 //    }
 //
 //    __inline__ __device__ int dequeue(QueueElement* data, int& procId, int startThread = 0)
 //    {
-//      return queues[ blockIdx.x % MaxBlocks]. dequeue(data, procId);
+//      return queues[ blockIdx_x % MaxBlocks]. dequeue(data, procId);
 //    }
 //  };
 //
@@ -647,7 +647,7 @@
 //    template<class PROCEDURE>
 //    __device__ bool enqueue(typename PROCEDURE::ExpectedData const& data) 
 //    {
-//      int qId = blockIdx.x % MaxBlocks;
+//      int qId = blockIdx_x % MaxBlocks;
 //      if(queues[qId].size() > DonateThreshold && whippletree::random::warp_check(DonateProbability))
 //        qId = whippletree::random::warp_rand() % MaxBlocks;
 //      return enqueue<PROCEDURE,  typename PROCEDURE::ExpectedData>(qId, data);
@@ -655,7 +655,7 @@
 //
 //    __inline__ __device__ int dequeue(QueueElement* data, int& procId, int startThread = 0)
 //    {
-//      return queues[ blockIdx.x % MaxBlocks]. dequeue(data, procId);
+//      return queues[ blockIdx_x % MaxBlocks]. dequeue(data, procId);
 //    }
 //  };
 //}

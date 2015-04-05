@@ -60,8 +60,8 @@ namespace KernelLaunches
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
   {
-    int id = blockIdx.x*blockDim.x + threadIdx.x;
-    for( ; id < num; id += blockDim.x*gridDim.x)
+    int id = blockIdx_x*blockDim.x + threadIdx_x;
+    for( ; id < num; id += blockDim.x*gridDim_x)
     {
       InitProc::template init<Q>(q, id);
     }
@@ -89,7 +89,7 @@ namespace KernelLaunches
     extern __shared__ uint s_data[]; 
 
     int elements = (pullElements + N - 1) / N;
-    elements = max(0,min(elements, pullElements - elements *(prevLaunchedBlocks + blockIdx.x)));
+    elements = max(0,min(elements, pullElements - elements *(prevLaunchedBlocks + blockIdx_x)));
     
     if(elements == 0)
       return;
@@ -104,19 +104,19 @@ namespace KernelLaunches
 
     if(NoCopy)
     {
-      if(threadIdx.x < threads*num)
-        PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx.x, threads*num, q, reinterpret_cast<typename PROC::ExpectedData*>(execData), s_data);    
+      if(threadIdx_x < threads*num)
+        PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, threads*num, q, reinterpret_cast<typename PROC::ExpectedData*>(execData), s_data);    
     }
     else
     {
-      if(threadIdx.x < num*threads)
+      if(threadIdx_x < num*threads)
       {
         typename PROC::ExpectedData* pdata = reinterpret_cast<typename PROC::ExpectedData*>(execData);
         *(typename PROC::ExpectedData*)(s_data + sizeof(typename PROC::ExpectedData)/sizeof(uint)*getThreadOffset<PROC, false>()) = *pdata;
       }    
     
-      if(threadIdx.x < threads*num)
-        PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx.x, threads*num, q, reinterpret_cast<typename PROC::ExpectedData*>(s_data + threadIdx.x/threads*sizeof(typename PROC::ExpectedData)/sizeof(uint)), s_data + sizeof(typename PROC::ExpectedData)/sizeof(uint)*num);    
+      if(threadIdx_x < threads*num)
+        PROC:: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, threads*num, q, reinterpret_cast<typename PROC::ExpectedData*>(s_data + threadIdx_x/threads*sizeof(typename PROC::ExpectedData)/sizeof(uint)), s_data + sizeof(typename PROC::ExpectedData)/sizeof(uint)*num);    
     }
 
     __syncthreads();

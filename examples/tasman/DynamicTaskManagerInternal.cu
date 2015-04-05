@@ -55,7 +55,7 @@ namespace
 		
 		__inline__ __device__ void globalMaintain()
 		{
-			if (threadIdx.x == 0)
+			if (threadIdx_x == 0)
 			{
 				if (submission)
 				{

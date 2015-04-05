@@ -110,7 +110,7 @@ struct SharedBaseQueue
         return false;
 
       //copy TODO: for a multiple of the threadcount we can unroll that..
-      for(int i = threadIdx.x % ThreadsPerElement; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += ThreadsPerElement)
+      for(int i = threadIdx_x % ThreadsPerElement; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += ThreadsPerElement)
         *(reinterpret_cast<uint*>(queueData + qpos) + i) = *(reinterpret_cast<uint*>(data) + i);
       return true;
     }
@@ -119,7 +119,7 @@ struct SharedBaseQueue
       if(counter >= NumElements)
         return false;
       int spos = -1;
-      if(threadIdx.x % ThreadsPerElement == 0)
+      if(threadIdx_x % ThreadsPerElement == 0)
       {
         spos = atomicAdd((int*)&counter, 1);
         if(spos >= NumElements)
@@ -133,7 +133,7 @@ struct SharedBaseQueue
         return false;
 
             //copy
-      for(int i = threadIdx.x % ThreadsPerElement; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += ThreadsPerElement)
+      for(int i = threadIdx_x % ThreadsPerElement; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += ThreadsPerElement)
         *(reinterpret_cast<uint*>(queueData) + sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*spos + i) = *(reinterpret_cast<uint*>(data) + i);
       return true;
     }
@@ -143,12 +143,12 @@ struct SharedBaseQueue
   {
     int n = counter;
     __syncthreads();
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
       counter = max(0, n - maxnum);
     int take = min(maxnum, n);
     int offset = n - take;
 
-    for(int i = threadIdx.x; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*take; i+=blockDim.x)
+    for(int i = threadIdx_x; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*take; i+=blockDim.x)
      *(reinterpret_cast<uint*>(data) + i) = *(reinterpret_cast<uint*>(queueData) + sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*offset + i);
 
     return take;
@@ -164,8 +164,8 @@ struct SharedBaseQueue
   __inline__ __device__ int startRead(typename PROCEDURE::ExpectedData*& data, int num)
   {
     int o = counter - num;
-    //if(threadIdx.x == 0)
-    //    printf("%d startRead %d->%d\n", blockIdx.x, o, num);
+    //if(threadIdx_x == 0)
+    //    printf("%d startRead %d->%d\n", blockIdx_x, o, num);
     data = queueData + o;
     return o;
   }
@@ -174,24 +174,24 @@ struct SharedBaseQueue
     __syncthreads();
     int c = counter;
     int additional = (c - (id + num))*sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint);
-    //if(threadIdx.x == 0)
-    //    printf("%d finishRead %d->%d, move %d\n", blockIdx.x, c, c-num, additional);
+    //if(threadIdx_x == 0)
+    //    printf("%d finishRead %d->%d, move %d\n", blockIdx_x, c, c-num, additional);
     if(additional > 0)
     {
       //we need to copy to the front
-      uint* cdata = reinterpret_cast<uint*>(queueData) + id * sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint) + threadIdx.x;
+      uint* cdata = reinterpret_cast<uint*>(queueData) + id * sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint) + threadIdx_x;
       for(int i = 0; i < additional*sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += blockDim.x)
       {
         uint d = 0;
-        if(i + threadIdx.x < additional)
+        if(i + threadIdx_x < additional)
           d = *(cdata + num * sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint) + i);
         __syncthreads();
-        if(i + threadIdx.x < additional)
+        if(i + threadIdx_x < additional)
           *(cdata + i) = d;
       }
     }
     __syncthreads();
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
     {
       //int r = atomicSub((int*)&counter, num);
       counter = c - num;
@@ -432,7 +432,7 @@ public:
 
   __inline__ __device__ static void init(char* sQueueStartPointer)
   {
-    myQ(sQueueStartPointer)->clean(threadIdx.x, blockDim.x);
+    myQ(sQueueStartPointer)->clean(threadIdx_x, blockDim.x);
     myQ(sQueueStartPointer)->writeHeader();
     NextSharedQueueElement::init(sQueueStartPointer);
   }
@@ -676,8 +676,8 @@ public:
     d.x = ExtQ :: template dequeueStartRead<MultiProcedure>(data, procId, maxShared);
     if(d.x > 0) 
     {
-       /*  if(threadIdx.x == 0)
-          printf("%d global dequeueStartRead successful %d %d\n", blockIdx.x, d.x, procId[1]);   */ 
+       /*  if(threadIdx_x == 0)
+          printf("%d global dequeueStartRead successful %d %d\n", blockIdx_x, d.x, procId[1]);   */ 
         return d.x;
     }
     d = SharedQ :: dequeueStartRead<MultiProcedure> (reinterpret_cast<char*>(s_data), data, procId, maxShared, 0);
@@ -746,14 +746,14 @@ public:
     if(id & 0x40000000)
     {
       SharedQ :: template finishRead<PROCEDURE>(reinterpret_cast<char*>(s_data), id & 0x3FFFFFFF, num);
-      //if(threadIdx.x == 0)
-      //printf("%d shared finish read done %d %d\n", blockIdx.x, id,num);
+      //if(threadIdx_x == 0)
+      //printf("%d shared finish read done %d %d\n", blockIdx_x, id,num);
     }
     else
     {
       ExtQ :: template finishRead<PROCEDURE>(id, num);
-      // if(threadIdx.x == 0)
-      //printf("%d global finish read done %d %d\n", blockIdx.x, id,num);
+      // if(threadIdx_x == 0)
+      //printf("%d global finish read done %d %d\n", blockIdx_x, id,num);
     }
   }
 

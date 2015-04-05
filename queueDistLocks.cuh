@@ -64,14 +64,14 @@
     
     __inline__ __device__ void init() 
     {
-      uint lid = threadIdx.x + blockIdx.x*blockDim.x;
+      uint lid = threadIdx_x + blockIdx_x*blockDim.x;
       if(lid == 0)
       {
         front = 0, back = 0, count = 0;
         if(TWithFence)
           sortingFence = QueueSize, hitSortingFence = 0, sortingMinBorder = 32, lastSortEnd = 0;
       }
-      for(uint i = lid; i < QueueSize; i+=blockDim.x*gridDim.x)
+      for(uint i = lid; i < QueueSize; i+=blockDim.x*gridDim_x)
         locks[i] = 0;
     }
 
@@ -187,7 +187,7 @@
     __inline__ __device__ uint2 dequeuePrep(int num)
     { 
       __shared__ uint2 offset_take;
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
       {
         int c = atomicSub(const_cast<int*>(&count), num);
         if(c < num)
@@ -202,9 +202,9 @@
         //  offset_take.x = 0;
       }
       __syncthreads();
-      if(threadIdx.x < offset_take.y)
+      if(threadIdx_x < offset_take.y)
       {
-        uint p = (offset_take.x + threadIdx.x)%QueueSize;
+        uint p = (offset_take.x + threadIdx_x)%QueueSize;
         while(locks[p] != 1)
           __threadfence();
 
@@ -227,9 +227,9 @@
 
     __inline__ __device__ void dequeueEnd(uint2 offset_take)
     {
-      if(threadIdx.x < offset_take.y)
+      if(threadIdx_x < offset_take.y)
       {
-        locks[(offset_take.x + threadIdx.x)%QueueSize] = 0;
+        locks[(offset_take.x + threadIdx_x)%QueueSize] = 0;
         //__threadfence();
       }
     }
@@ -237,7 +237,7 @@
     __inline__ __device__ int reserveRead(int maxnum, bool only_read_all = false)
     {
       __shared__ int num;
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
       {
         int c = atomicSub(const_cast<int*>(&count), maxnum);
         if(c < maxnum)
@@ -264,12 +264,12 @@
       __shared__ int offset;
       if(num <= 0)
         return 0;
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
          offset = atomicAdd(&front, num);
       __syncthreads();
-      if(threadIdx.x < num)
+      if(threadIdx_x < num)
       {
-        int pos = (offset + threadIdx.x)%QueueSize;
+        int pos = (offset + threadIdx_x)%QueueSize;
         while(locks[pos] != 1)
           __threadfence();
        
@@ -290,8 +290,8 @@
     }
     __inline__ __device__ void finishRead(int id, int num)
     {
-      if(threadIdx.x < num)
-        locks[(id + threadIdx.x)%QueueSize] = 0;
+      if(threadIdx_x < num)
+        locks[(id + threadIdx_x)%QueueSize] = 0;
     }
 
   public:
@@ -443,7 +443,7 @@
       extern __shared__ uint s_data[];
 
       uint num = 2*threads;
-      uint linId = threadIdx.x;
+      uint linId = threadIdx_x;
 
       int cFront = 0;
       if(linId == 0)
@@ -582,7 +582,7 @@
 
 
       //write out
-      //if(threadIdx.x == 0)
+      //if(threadIdx_x == 0)
       //{
       //  for(int i = 0; i < num; ++i)
       //    printf("%d; ", ids[i]);

@@ -74,7 +74,7 @@ public:
   __inline__ __device__ int dequeue(void* data, int num)
   {
     __shared__ uint2 offset_take;
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
     {
       int rc = atomicAdd(&readCount, num);
       int available = maxcount - rc;
@@ -87,9 +87,9 @@ public:
     }
     __syncthreads();
    
-    if(threadIdx.x < offset_take.y)
+    if(threadIdx_x < offset_take.y)
     {
-      QueueStorage<TElementSize, void, TQueueSize>::readData(reinterpret_cast<uint*>(data) + threadIdx.x * ElementSize, offset_take.x + threadIdx.x);
+      QueueStorage<TElementSize, void, TQueueSize>::readData(reinterpret_cast<uint*>(data) + threadIdx_x * ElementSize, offset_take.x + threadIdx_x);
       __threadfence();
     }
     __syncthreads();
@@ -99,7 +99,7 @@ public:
   __inline__ __device__ int reserveRead(int maxnum, bool only_read_all = false)
   {
     __shared__ int num;
-    if(threadIdx.x == 0)
+    if(threadIdx_x == 0)
     {
       int available = maxcount - atomicAdd(&readCount, maxnum);
       if(available < maxnum && only_read_all)
@@ -123,7 +123,7 @@ public:
     __shared__ int offset;
     if(num > 0)
     {
-      if(threadIdx.x == 0)
+      if(threadIdx_x == 0)
         offset = atomicAdd((int*)&count, num);    
       __syncthreads();
       if(pos < num)

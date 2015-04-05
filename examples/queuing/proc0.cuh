@@ -49,7 +49,7 @@ public:
   template<class Q, class Context>
   static __device__ __inline__ void execute(int threadId, int numThreads, Q* queue,  ExpectedData* data, uint* shared) 
   {
-    printf("thread %d of %d excutes Proc0 for data %d (CUDA thread %d %d) and generates an item for proc 1\n", threadId, numThreads, data->x, threadIdx.x, blockIdx.x);
+    printf("thread %d of %d excutes Proc0 for data %d (CUDA thread %d %d) and generates an item for proc 1\n", threadId, numThreads, data->x, threadIdx_x, blockIdx_x);
     
     //enqueue an element for Proc1
     queue-> template enqueue< Proc1 >(*data, 0);
