@@ -64,14 +64,14 @@
     
     __inline__ __device__ void init() 
     {
-      uint lid = threadIdx_x + blockIdx_x*blockDim.x;
+      uint lid = threadIdx_x + blockIdx_x*blockDim_x;
       if(lid == 0)
       {
         front = 0, back = 0, count = 0;
         if(TWithFence)
           sortingFence = QueueSize, hitSortingFence = 0, sortingMinBorder = 32, lastSortEnd = 0;
       }
-      for(uint i = lid; i < QueueSize; i+=blockDim.x*gridDim_x)
+      for(uint i = lid; i < QueueSize; i+=blockDim_x*gridDim_x)
         locks[i] = 0;
     }
 
@@ -249,7 +249,7 @@
           }
           else
           {
-            atomicAdd(const_cast<int*>(&count), min(maxnum,maxnum - c));
+            atomicAdd(const_cast<int*>(&count), MIN(maxnum,maxnum - c));
             num = max(c, 0);
           }
         }

@@ -131,7 +131,7 @@ __device__ __inline__ void whippletree_matmul(int threadId, int numThreads, void
 	float* As = (float*)shared;
 	float* Bs = (float*)shared + blockDim_.x * blockDim_.y;
 
-	// Go through "tiles" of size blockDim.x * blockDim.y
+	// Go through "tiles" of size blockDim_x * blockDim.y
 	for (uint aoff = 0, boff = 0; aoff < n; aoff += blockDim_.x, boff += blockDim_.y * n)
 	{
 		// Load the "tile" matrices from global memory to shared memory
@@ -192,7 +192,7 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
 
 #ifndef MATMUL_USE_SHARED
 	int ia = (blockDim.y * blockIdx.y + threadIdx.y) * n;
-	int ib = blockDim.x * blockIdx_x + threadIdx_x;
+	int ib = blockDim_x * blockIdx_x + threadIdx_x;
 	int ic = ia + ib;
 
 	// Multiply two matrices
@@ -201,7 +201,7 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
 #else
     // Base indexes inside A and B
     int ia = (blockDim.y * blockIdx.y) * n;
-    int ib = blockDim.x * blockIdx_x;
+    int ib = blockDim_x * blockIdx_x;
     
     // Subindex inside a "tile"
     int tileidx = n * threadIdx.y + threadIdx_x;
@@ -215,8 +215,8 @@ __global__ void cuda_matmul(float* A, float* B, float* C, size_t n)
     __shared__ float As [BLOCK_SIZE][BLOCK_SIZE];
     __shared__ float Bs [BLOCK_SIZE][BLOCK_SIZE];
 
-    // Go through "tiles" of size blockDim.x * blockDim.y
-    for (; aoff < n; aoff += blockDim.x, boff += blockDim.y * n)
+    // Go through "tiles" of size blockDim_x * blockDim.y
+    for (; aoff < n; aoff += blockDim_x, boff += blockDim.y * n)
     {
         // Load the "tile" matrices from global memory to shared memory
         As [threadIdx.y][threadIdx_x] = A [ia + aoff + tileidx];

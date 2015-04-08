@@ -79,11 +79,11 @@ public:
       int rc = atomicAdd(&readCount, num);
       int available = maxcount - rc;
       if(available < num)
-        atomicSub(&readCount, max(0,min(num - available, num)));
+        atomicSub(&readCount, MAX(0, MIN(num - available, num)));
       if(available > 0)
-        rc = atomicAdd((int*)&count, min(available, num));
-      offset_take.x = max(0,rc);
-      offset_take.y = max(0,min(available, num));
+        rc = atomicAdd((int*)&count, MIN(available, num));
+      offset_take.x = MAX(0, rc);
+      offset_take.y = MAX(0, MIN(available, num));
     }
     __syncthreads();
    
@@ -109,8 +109,8 @@ public:
       }
       else if(available < maxnum)
       {
-        atomicSub((int*)&readCount, max(0,min(maxnum, maxnum - available)));
-        num = max(0,min(available, maxnum));
+        atomicSub((int*)&readCount, MAX(0, MIN(maxnum, maxnum - available)));
+        num = MAX(0, MIN(available, maxnum));
       }
       else
         num = maxnum;

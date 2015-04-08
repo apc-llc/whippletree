@@ -418,13 +418,13 @@
 //      __shared__ int haveSomething;
 //      haveSomething = 0;
 //      int hasSomething;
-//      int num = blockDim.x - startThread;
+//      int num = blockDim_x - startThread;
 //
 //      Softshell::syncthreads(2, num);
 //      
 //      
 //
-//      Visitor visitor(num, haveSomething, hasSomething, procId, startThread, data, blockDim.x);
+//      Visitor visitor(num, haveSomething, hasSomething, procId, startThread, data, blockDim_x);
 //      if(queues. template visitAll<Visitor>(visitor))
 //        return hasSomething;
 //      Visitor visitor2(num, haveSomething, hasSomething, procId, startThread, data, 0);

@@ -71,8 +71,8 @@ namespace Megakernel
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
   {
-    int id = blockIdx_x*blockDim.x + threadIdx_x;
-    for( ; id < num; id += blockDim.x*gridDim_x)
+    int id = blockIdx_x*blockDim_x + threadIdx_x;
+    for( ; id < num; id += blockDim_x*gridDim_x)
     {
       InitProc::template init<Q>(q, id);
     }
@@ -104,7 +104,7 @@ namespace Megakernel
       if(PROC::NumThreads != 0)
         nThreads = PROC::NumThreads;
       else
-        nThreads = blockDim.x;
+        nThreads = blockDim_x;
       if(PROC::NumThreads == 0 || threadIdx_x < nThreads)
         PROC :: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, nThreads, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
@@ -129,7 +129,7 @@ namespace Megakernel
       }
       else
       {
-        PROC :: template execute<Q, Context<PROC::NumThreads, true, CUSTOM> >(threadIdx_x, blockDim.x, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
+        PROC :: template execute<Q, Context<PROC::NumThreads, true, CUSTOM> >(threadIdx_x, blockDim_x, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
       }
       
     }
@@ -700,7 +700,7 @@ namespace Megakernel
 
       //Phase0Q::CurrentPhaseProcInfo::print();
 
-      int b = min((num + 512 - 1)/512,104);
+      int b = MIN((num + 512 - 1) / 512, 104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }

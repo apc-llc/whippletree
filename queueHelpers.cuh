@@ -837,7 +837,7 @@ public:
 
   __inline__ __device__ void init()
   {
-    uint lid = threadIdx_x + blockIdx_x*blockDim.x;
+    uint lid = threadIdx_x + blockIdx_x*blockDim_x;
     if(lid == 0)
       allocPointer = 0;
   }
@@ -882,8 +882,8 @@ public:
 
   __inline__ __device__ void init()
   {
-    uint lid = threadIdx_x + blockIdx_x*blockDim.x;
-    for(int i = lid; i < (AllocElements + 31)/32; i += blockDim.x*gridDim_x)
+    uint lid = threadIdx_x + blockIdx_x*blockDim_x;
+    for(int i = lid; i < (AllocElements + 31)/32; i += blockDim_x*gridDim_x)
       flags[i] = 0;
     if(lid == 0)
       allocPointer = 0;
@@ -966,8 +966,8 @@ public:
     MemAlloc<TQueueSize*(TAvgElementSize + (TAvgElementSize > 8 || AdditionalDataInfo<TAdditionalData>::size > 8 ? (sizeof(TAdditionalData)+15)/16*16 :  TAvgElementSize > 4 || AdditionalDataInfo<TAdditionalData>::size > 4 ? (sizeof(TAdditionalData)+7)/8*8 : 4))>::init();
     if(TCheckSet)
     {
-       uint lid = threadIdx_x + blockIdx_x*blockDim.x;
-       for(uint i = lid; i < 2*TQueueSize; i+=blockDim.x*gridDim_x)
+       uint lid = threadIdx_x + blockIdx_x*blockDim_x;
+       for(uint i = lid; i < 2*TQueueSize; i+=blockDim_x*gridDim_x)
          ((uint*)offsetStorage)[i] = 0;
     }
   }
@@ -1089,8 +1089,8 @@ public:
     MemAlloc<TAvgElementSize*TQueueSize>::init();
     if(TCheckSet)
     {
-       uint lid = threadIdx_x + blockIdx_x*blockDim.x;
-       for(uint i = lid; i < 2*TQueueSize; i+=blockDim.x*gridDim_x)
+       uint lid = threadIdx_x + blockIdx_x*blockDim_x;
+       for(uint i = lid; i < 2*TQueueSize; i+=blockDim_x*gridDim_x)
          ((uint*)offsetStorage)[i] = 0;
     }
   }

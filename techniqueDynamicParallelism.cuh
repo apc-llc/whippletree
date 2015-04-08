@@ -59,8 +59,8 @@ namespace DynamicParallelism
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num, int frame)
   {
-    int id = blockIdx_x*blockDim.x + threadIdx_x;
-    for( ; id < num; id += blockDim.x*gridDim_x)
+    int id = blockIdx_x*blockDim_x + threadIdx_x;
+    for( ; id < num; id += blockDim_x*gridDim_x)
     {
       InitProc::template init<Q>(q, id, frame);
     }
@@ -120,7 +120,7 @@ namespace DynamicParallelism
       if(PROC::ItemInput)
         num = 1;
       else
-        num = blockDim.x;
+        num = blockDim_x;
     }
     if(threadIdx_x < num)
       PROC:: template execute<DynQueue, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, num, nullptr, &data, s_data);
@@ -330,7 +330,7 @@ namespace DynamicParallelism
     {
       typedef CurrentMultiphaseQueue<Q, 0> Phase0Q;
 
-      int b = min((num + 512 - 1)/512,104);
+      int b = MIN((num + 512 - 1) / 512, 104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }
@@ -687,7 +687,7 @@ namespace DynamicParallelism
     {
       typedef CurrentMultiphaseQueue<Q, 0> Phase0Q;
 
-      int b = min((num + 512 - 1)/512,104);
+      int b = MIN((num + 512 - 1) / 512, 104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }

@@ -121,10 +121,10 @@ class PerProcedureVersatileQueue : public ::Queue<>
 
       if(Itemized || MultiProcedure)
       {
-        int itemThreadCount = Procedure::NumThreads > 0 ? Procedure::NumThreads : (MultiProcedure ? blockDim.x : 1);
+        int itemThreadCount = Procedure::NumThreads > 0 ? Procedure::NumThreads : (MultiProcedure ? blockDim_x : 1);
         if(size*itemThreadCount >= _itemizedThreshold)
         {
-          int nItems = Procedure::sharedMemory != 0 ? min(blockDim.x/itemThreadCount, _maxShared / ((uint)sizeof(typename Procedure::ExpectedData) + Procedure::sharedMemory)) :  min(blockDim.x/itemThreadCount, _maxShared / ((uint)sizeof(typename Procedure::ExpectedData)));
+          int nItems = Procedure::sharedMemory != 0 ? MIN(blockDim_x / itemThreadCount, _maxShared / ((uint)sizeof(typename Procedure::ExpectedData) + Procedure::sharedMemory)) : MIN(blockDim_x/itemThreadCount, _maxShared / ((uint)sizeof(typename Procedure::ExpectedData)));
           nItems = min(nItems, getElementCount<Procedure, MultiProcedure>());
           _haveSomething = q.dequeue(_data, nItems);
           if(threadIdx_x < _haveSomething*itemThreadCount)
@@ -139,7 +139,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
       }
       else
       {
-        _haveSomething = q.dequeue(_data, 1) * (Procedure::NumThreads > 0 ? Procedure::NumThreads : blockDim.x);
+        _haveSomething = q.dequeue(_data, 1) * (Procedure::NumThreads > 0 ? Procedure::NumThreads : blockDim_x);
         _procId[0] = findProcId<ProcedureInfo, Procedure>::value;
         return _haveSomething > 0;
       }
@@ -179,11 +179,11 @@ class PerProcedureVersatileQueue : public ::Queue<>
 
       if(Itemized || MultiProcedure)
       {
-        int itemThreadCount = Procedure::NumThreads > 0 ? Procedure::NumThreads : (MultiProcedure ? blockDim.x : 1);
+        int itemThreadCount = Procedure::NumThreads > 0 ? Procedure::NumThreads : (MultiProcedure ? blockDim_x : 1);
         if(size*itemThreadCount >= _itemizedThreshold)
         {
-          int nItems = Procedure::sharedMemory != 0 ? min(blockDim.x/itemThreadCount, _maxShared / Procedure::sharedMemory) : blockDim.x/itemThreadCount;
-          nItems = min(nItems, getElementCount<Procedure, MultiProcedure>());
+          int nItems = Procedure::sharedMemory != 0 ? MIN(blockDim_x/itemThreadCount, _maxShared / Procedure::sharedMemory) : blockDim_x/itemThreadCount;
+          nItems = MIN(nItems, getElementCount<Procedure, MultiProcedure>());
           _haveSomething = q.reserveRead(nItems);
           if(_haveSomething != 0)
           {
@@ -201,7 +201,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
         if(_haveSomething != 0)
         {
           int id = q.startRead(_data, 0, _haveSomething);
-          _haveSomething *= (Procedure::NumThreads > 0 ? Procedure::NumThreads : blockDim.x);
+          _haveSomething *= (Procedure::NumThreads > 0 ? Procedure::NumThreads : blockDim_x);
           _procId[0] = findProcId<ProcedureInfo, Procedure>::value;
           _procId[1] = id;
           return true;
@@ -428,7 +428,7 @@ public:
   {     
     if(!RandomSelect)
     {
-      Visitor<MultiProcedure> visitor(procId, data, blockDim.x, maxShared);
+      Visitor<MultiProcedure> visitor(procId, data, blockDim_x, maxShared);
       if(queues. template visitAll<Visitor<MultiProcedure> >(visitor))
         return visitor.haveSomething();
       Visitor<MultiProcedure> visitor2(procId, data, 0, maxShared);
@@ -437,7 +437,7 @@ public:
     }
     else
     {
-      Visitor<MultiProcedure> visitor(procId, data, blockDim.x, maxShared);
+      Visitor<MultiProcedure> visitor(procId, data, blockDim_x, maxShared);
       if(queues. template VisitAllRandStart<Visitor<MultiProcedure> >(visitor))
         return visitor.haveSomething();
       Visitor<MultiProcedure> visitor2(procId, data, 0, maxShared);
@@ -461,7 +461,7 @@ public:
   {
     if(!RandomSelect)
     {
-      ReadVisitor<MultiProcedure> visitor(procId, data, blockDim.x, maxShared);
+      ReadVisitor<MultiProcedure> visitor(procId, data, blockDim_x, maxShared);
       if(queues. template VisitAll<ReadVisitor<MultiProcedure> >(visitor))
         return visitor.haveSomething();
       ReadVisitor<MultiProcedure> visitor2(procId, data, 0, maxShared);
@@ -470,7 +470,7 @@ public:
     }
     else
     {
-      ReadVisitor<MultiProcedure> visitor(procId, data, blockDim.x, maxShared);
+      ReadVisitor<MultiProcedure> visitor(procId, data, blockDim_x, maxShared);
       if(queues. template VisitAllRandStart<ReadVisitor<MultiProcedure> >(visitor))
         return visitor.haveSomething();
       ReadVisitor<MultiProcedure> visitor2(procId, data, 0, maxShared);
@@ -485,7 +485,7 @@ public:
   __inline__ __device__ int reserveRead(int maxNum = -1)
   {
     if(maxNum == -1)
-      maxNum = blockDim.x / (PROCEDURE::NumThreads>0 ? PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? 1 : blockDim.x));
+      maxNum = blockDim_x / (PROCEDURE::NumThreads>0 ? PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? 1 : blockDim_x));
 
     ReserveReadVisitor<PROCEDURE> visitor(maxNum);
     queues . template VisitSpecific<ReserveReadVisitor<PROCEDURE>,PROCEDURE >(visitor);

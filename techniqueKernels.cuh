@@ -60,8 +60,8 @@ namespace KernelLaunches
   template<class InitProc, class Q>
   __global__ void initData(Q* q, int num)
   {
-    int id = blockIdx_x*blockDim.x + threadIdx_x;
-    for( ; id < num; id += blockDim.x*gridDim_x)
+    int id = blockIdx_x*blockDim_x + threadIdx_x;
+    for( ; id < num; id += blockDim_x*gridDim_x)
     {
       InitProc::template init<Q>(q, id);
     }
@@ -157,7 +157,7 @@ namespace KernelLaunches
       int leftblocks = blocks;
       while(leftblocks > 0)
       {
-        int launchblocks = min(leftblocks, 65535);
+        int launchblocks = MIN(leftblocks, 65535);
         executeProc<PROC, CUSTOM, Q, NoCopy><<<launchblocks, blockSize, smem, stream>>>(q, elements, blocks, prevLaunched);
         leftblocks -= launchblocks;
         prevLaunched += launchblocks;
@@ -325,7 +325,7 @@ namespace KernelLaunches
     {
       typedef CurrentMultiphaseQueue<Q, 0> Phase0Q;
 
-      int b = min((num + 512 - 1)/512,104);
+      int b = MIN((num + 512 - 1) / 512, 104);
       initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }

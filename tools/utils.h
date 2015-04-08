@@ -54,4 +54,12 @@
 #define CHECKED_CALL CL_CHECKED_CALL
 #endif
 
+#if defined(_CUDA)
+#define MIN(a,b) min(a,b)
+#define MAX(a,b) max(a,b)
+#elif defined(_OPENCL)
+#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
 #endif  // TOOLS_UTILS_INCLUDED

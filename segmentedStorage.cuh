@@ -65,7 +65,7 @@ namespace SegmentedStorage
     {
       count = NumBlocks;
       back = front = 0;
-      for(int id = threadIdx_x + blockIdx_x*blockDim.x; id < NumBlocks; id += gridDim_x*blockDim.x)
+      for(int id = threadIdx_x + blockIdx_x*blockDim_x; id < NumBlocks; id += gridDim_x*blockDim_x)
         available[id] = id;
     }
 
@@ -248,7 +248,7 @@ namespace SegmentedStorage
       int myblock = mypos/ElementsPerBlock;
       if(threadIdx_x < pos.y && (threadIdx_x == 0 || (myblock != prevblock)) )
       {
-        int donelements = min((int)((myblock + 1)*ElementsPerBlock - mypos),(int)(pos.y-threadIdx_x));
+        int donelements = MIN((int)((myblock + 1) * ElementsPerBlock - mypos), (int)(pos.y - threadIdx_x));
         int bid = useBlocks[myblock];
         TMyBlock* b = reinterpret_cast<TMyBlock*>(SharedStorage::get()->indexToBlock(bid));
         if(b->doneuse(donelements))
@@ -273,8 +273,8 @@ namespace SegmentedStorage
   
     __inline__ __device__ void init()
     {
-      int id = blockIdx_x*blockDim.x + threadIdx_x;
-      for(int i = id; i < MaxBlocks; i+= blockDim.x*gridDim_x)
+      int id = blockIdx_x*blockDim_x + threadIdx_x;
+      for(int i = id; i < MaxBlocks; i+= blockDim_x*gridDim_x)
         useBlocks[i] = -1;
 #ifdef DEBUG_STORAGE
   if(id == 0)

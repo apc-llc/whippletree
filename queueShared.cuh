@@ -69,7 +69,7 @@ struct SharedBaseQueue
   }
   __inline__ __device__ int num() const
   {
-    return min(counter,NumElements);
+    return MIN(counter, NumElements);
   }
   __inline__ __device__ int count() const
   {
@@ -96,7 +96,7 @@ struct SharedBaseQueue
       if(mypos == 0)
       {
         spos = atomicAdd((int*)&counter, ourcount);
-        int canPut = max(0, min(NumElements - spos, ourcount));
+        int canPut = MAX(0, MIN(NumElements - spos, ourcount));
         if(canPut < ourcount)
           atomicSub((int*)&counter, ourcount - canPut);
       }
@@ -144,11 +144,11 @@ struct SharedBaseQueue
     int n = counter;
     __syncthreads();
     if(threadIdx_x == 0)
-      counter = max(0, n - maxnum);
-    int take = min(maxnum, n);
+      counter = MAX(0, n - maxnum);
+    int take = MIN(maxnum, n);
     int offset = n - take;
 
-    for(int i = threadIdx_x; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*take; i+=blockDim.x)
+    for(int i = threadIdx_x; i < sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*take; i+=blockDim_x)
      *(reinterpret_cast<uint*>(data) + i) = *(reinterpret_cast<uint*>(queueData) + sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint)*offset + i);
 
     return take;
@@ -159,7 +159,7 @@ struct SharedBaseQueue
     int n = counter;
     if(only_read_all && n < maxnum)
       return 0;
-    return max(0,min(n, maxnum));
+    return MAX(0, MIN(n, maxnum));
   }
   __inline__ __device__ int startRead(typename PROCEDURE::ExpectedData*& data, int num)
   {
@@ -180,7 +180,7 @@ struct SharedBaseQueue
     {
       //we need to copy to the front
       uint* cdata = reinterpret_cast<uint*>(queueData) + id * sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint) + threadIdx_x;
-      for(int i = 0; i < additional*sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += blockDim.x)
+      for(int i = 0; i < additional*sizeof(typename PROCEDURE::ExpectedData)/sizeof(uint); i += blockDim_x)
       {
         uint d = 0;
         if(i + threadIdx_x < additional)
@@ -432,7 +432,7 @@ public:
 
   __inline__ __device__ static void init(char* sQueueStartPointer)
   {
-    myQ(sQueueStartPointer)->clean(threadIdx_x, blockDim.x);
+    myQ(sQueueStartPointer)->clean(threadIdx_x, blockDim_x);
     myQ(sQueueStartPointer)->writeHeader();
     NextSharedQueueElement::init(sQueueStartPointer);
   }
@@ -459,11 +459,11 @@ public:
   { 
     int maxElements = getElementCount<MyProc,MultiProcedure>();
     if(maxShared != -1)
-      maxElements = min(maxElements, maxShared / ((int)sizeof(typename MyProc::ExpectedData) + MyProc::sharedMemory));
+      maxElements = MIN(maxElements, maxShared / ((int)sizeof(typename MyProc::ExpectedData) + MyProc::sharedMemory));
 
     int DequeueThreshold = minPercent*NumElements/100+1;
     int c = myQ(sQueueStartPointer)->count();
-    if(c >=  min(maxElements,DequeueThreshold))
+    if(c >= MIN(maxElements,DequeueThreshold))
     {
       c = myQ(sQueueStartPointer)->dequeue(data, maxElements);
       if(c > 0)
@@ -481,11 +481,11 @@ public:
   {
     int maxElements = getElementCount<MyProc>();
     if(maxNum != -1)
-      maxElements = min(maxElements, maxNum);
+      maxElements = MIN(maxElements, maxNum);
 
     int DequeueThreshold = minPercent*NumElements/100+1;
     int c = myQ(sQueueStartPointer)->count();
-    if(c >=  min(maxElements,DequeueThreshold))
+    if(c >=  MIN(maxElements, DequeueThreshold))
     {
       c = myQ(sQueueStartPointer)->dequeue(data, maxElements);
       if(c > 0)
@@ -502,7 +502,7 @@ public:
   { 
     int maxElements = getElementCount<MyProc, MultiProcedure>();
     if(maxShared != -1)
-      maxElements = min(maxElements, MyProc::sharedMemory > 0 ? maxShared / (MyProc::sharedMemory) : blockDim.x);
+      maxElements = min(maxElements, MyProc::sharedMemory > 0 ? maxShared / (MyProc::sharedMemory) : blockDim_x);
     int c = myQ(sQueueStartPointer)->count();
     int DequeueThreshold = minPercent*NumElements/100+1;
     if(c >=  min(maxElements,DequeueThreshold))

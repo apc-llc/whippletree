@@ -101,14 +101,14 @@ public:
 template<class PROCEDURE>
 __device__ __inline__ int getThreadCount()
 {
-  return PROCEDURE::NumThreads > 0 ? PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? 1 : blockDim.x);
+  return PROCEDURE::NumThreads > 0 ? PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? 1 : blockDim_x);
 }
 template<class PROCEDURE, bool MultiElement>
 __device__ __inline__ int getElementCount()
 {
   if(!MultiElement && !PROCEDURE::ItemInput)
     return 1;
-  return PROCEDURE::NumThreads > 0 ? blockDim.x/PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? blockDim.x : 1);
+  return PROCEDURE::NumThreads > 0 ? blockDim_x/PROCEDURE::NumThreads : (PROCEDURE::ItemInput ? blockDim_x : 1);
 }
 template<class PROCEDURE, bool MultiElement>
 __device__ __inline__ int getThreadOffset()
