@@ -31,6 +31,14 @@ SET(QUEUE_SOURCES
 	${SOURCE_DIR}/queuingMultiPhase.cuh
 	${SOURCE_DIR}/queuingPerProc.cuh
 )
+SET(UTILS_SOURCES
+	${SOURCE_DIR}/tools/bitonicSort.cuh
+	${SOURCE_DIR}/tools/cl_memory.h
+	${SOURCE_DIR}/tools/common.cuh
+	${SOURCE_DIR}/tools/cuda_memory.h
+	${SOURCE_DIR}/tools/types.h
+	${SOURCE_DIR}/tools/utils.h
+)
 
 SOURCE_GROUP("General" FILES
 	${GENERAL}
@@ -41,10 +49,11 @@ SOURCE_GROUP("Queues" FILES
 SOURCE_GROUP("Techniques" FILES
 	${TECHNIQUE_SOURCES}
 )
+SOURCE_GROUP("Tools" FILES
+	${TOOLS_SOURCES}
+)
 
-set(queues_SOURCES ${GENERAL} ${TECHNIQUE_SOURCES} ${QUEUE_SOURCES})
+set(queues_SOURCES ${GENERAL} ${TECHNIQUE_SOURCES} ${QUEUE_SOURCES} ${TOOLS_SOURCES})
 
-#set(queues_LIBRARY queues PARENT_SCOPE)
-set(queues_INCLUDE_DIR "${SOURCE_DIR}")
+include_directories(${SOURCE_DIR})
 
-include_directories(${queues_INCLUDE_DIR})

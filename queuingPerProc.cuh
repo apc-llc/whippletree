@@ -183,7 +183,7 @@ class PerProcedureVersatileQueue : public ::Queue<>
         if(size*itemThreadCount >= _itemizedThreshold)
         {
           int nItems = Procedure::sharedMemory != 0 ? MIN(blockDim_x/itemThreadCount, _maxShared / Procedure::sharedMemory) : blockDim_x/itemThreadCount;
-          nItems = MIN(nItems, getElementCount<Procedure, MultiProcedure>());
+          nItems = MIN(nItems, (getElementCount<Procedure, MultiProcedure>()));
           _haveSomething = q.reserveRead(nItems);
           if(_haveSomething != 0)
           {

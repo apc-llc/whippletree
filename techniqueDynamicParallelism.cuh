@@ -87,7 +87,7 @@ namespace DynamicParallelism
    
     #if !defined(__CUDACC__) || __CUDA_ARCH__ >= 350
     //printf("launching %d\n",PROC::ProcedureId);
-    executeProc<PROC, CUSTOM><<<1,divup(nThreads,32)*32, PROC::sharedMemory>>>(data);
+    executeProc<PROC, CUSTOM><<<1, divup(nThreads, 32) * 32, PROC::sharedMemory>>>(data);
     #endif
   }
 
@@ -251,7 +251,7 @@ namespace DynamicParallelism
          PointInTime start;
 
         //launch initial kernel
-        initLaunch<TQ,TProcInfo, CUSTOM><<<4, technique.blockSize[Phase], technique.sharedMem[Phase].y*4>>>(reinterpret_cast<TQ*>(q.get()), technique.sharedMem[Phase]);
+        initLaunch<TQ,TProcInfo, CUSTOM><<<4, technique.blockSize[Phase], technique.sharedMem[Phase].y*4>>>(reinterpret_cast<TQ*>(q->getDeviceAddress()), technique.sharedMem[Phase]);
         CHECKED_CALL(cudaDeviceSynchronize());
 
         PointInTime end;
@@ -268,7 +268,7 @@ namespace DynamicParallelism
     int blockSize[PROCINFO::NumPhases];
     uint4 sharedMem[PROCINFO::NumPhases];
 
-    std::unique_ptr<Q, device_ptr_deleter> q;
+    std::unique_ptr<GPUMem<Q> > q;
 
     int freq;
 
@@ -290,9 +290,9 @@ namespace DynamicParallelism
         return;
       }
 
-      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
+      q = std::unique_ptr<GPUMem<Q> >(deviceAlloc<Q>());
 
-      initQueue<Q> <<<512, 512>>>(q.get());
+      initQueue<Q> <<<512, 512>>>(q->getDeviceAddress());
       CHECKED_CALL(cudaDeviceSynchronize());
 
       InitPhaseVisitor v(*this);
@@ -311,7 +311,7 @@ namespace DynamicParallelism
         std::cout << "ERROR DynamicParallelism::recordQueue(): queue does not support reuse init\n";
       else
       {
-        recordData<Q><<<1, 1>>>(q.get());
+        recordData<Q><<<1, 1>>>(q->getDeviceAddress());
         CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
@@ -321,7 +321,7 @@ namespace DynamicParallelism
       if(!Q::supportReuseInit)
         std::cout << "ERROR DynamicParallelism::restoreQueue(): queue does not support reuse init\n";
       else
-        resetData<Q><<<1, 1>>>(q.get());
+        resetData<Q><<<1, 1>>>(q->getDeviceAddress());
     }
 
 
@@ -331,7 +331,7 @@ namespace DynamicParallelism
       typedef CurrentMultiphaseQueue<Q, 0> Phase0Q;
 
       int b = MIN((num + 512 - 1) / 512, 104);
-      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
+      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q->getDeviceAddress()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }
 
@@ -596,7 +596,7 @@ namespace DynamicParallelism
     typedef MultiPhaseQueue< PROCINFO, QUEUE > Q;
 
   protected:
-    std::unique_ptr<Q, device_ptr_deleter> q;
+    std::unique_ptr<GPUMem<Q> > q;
 
     int freq;
 
@@ -651,9 +651,9 @@ namespace DynamicParallelism
         return;
       }
 
-      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
+      q = std::unique_ptr<GPUMem<Q> >(deviceAlloc<Q>());
 
-      initQueue<Q> <<<512, 512>>>(q.get());
+      initQueue<Q> <<<512, 512>>>(q->getDeviceAddress());
       CHECKED_CALL(cudaDeviceSynchronize());
     }
 
@@ -668,7 +668,7 @@ namespace DynamicParallelism
         std::cout << "ERROR DynamicParallelism::recordQueue(): queue does not support reuse init\n";
       else
       {
-        recordData<Q><<<1, 1>>>(q.get());
+        recordData<Q><<<1, 1>>>(q->getDeviceAddress());
         CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
@@ -678,7 +678,7 @@ namespace DynamicParallelism
       if(!Q::supportReuseInit)
         std::cout << "ERROR DynamicParallelism::restoreQueue(): queue does not support reuse init\n";
       else
-        resetData<Q><<<1, 1>>>(q.get());
+        resetData<Q><<<1, 1>>>(q->getDeviceAddress());
     }
 
 
@@ -688,7 +688,7 @@ namespace DynamicParallelism
       typedef CurrentMultiphaseQueue<Q, 0> Phase0Q;
 
       int b = MIN((num + 512 - 1) / 512, 104);
-      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
+      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q->getDeviceAddress()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }
 

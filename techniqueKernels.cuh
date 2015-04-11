@@ -202,7 +202,7 @@ namespace KernelLaunches
 
   protected:
     std::vector<cudaStream_t> streams;
-    std::unique_ptr<Q, device_ptr_deleter> q;
+    std::unique_ptr<GPUMem<Q> > q;
 
     int freq;
 
@@ -232,7 +232,7 @@ namespace KernelLaunches
         while(work > 0)
         {
           CHECKED_CALL(cudaDeviceSynchronize());
-          readCounts<TQ><<<1,1>>>(reinterpret_cast<TQ*>(technique.q.get()));
+          readCounts<TQ><<<1,1>>>(reinterpret_cast<TQ*>(technique.q->getDeviceAddress()));
 #if defined(_CUDA)
           CHECKED_CALL(cudaMemcpyFromSymbol(&procCounts[0], queueCountsVar, sizeof(int)*numProcs));
 #elif defined(_OPENCL)
@@ -278,8 +278,8 @@ namespace KernelLaunches
         return;
       }
 
-      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
-      initQueue<Q> <<<512, 512>>>(q.get());
+      q = std::unique_ptr<GPUMem<Q> >(deviceAlloc<Q>());
+      initQueue<Q> <<<512, 512>>>(q->getDeviceAddress());
       CHECKED_CALL(cudaDeviceSynchronize());
       if(streams.size() < numProcs)
       {
@@ -307,7 +307,7 @@ namespace KernelLaunches
         std::cout << "ERROR KernelLaunches::recordQueue(): queue does not support reuse init\n";
       else
       {
-        recordData<Q><<<1, 1>>>(q.get());
+        recordData<Q><<<1, 1>>>(q->getDeviceAddress());
         CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
@@ -317,7 +317,7 @@ namespace KernelLaunches
       if(!Q::supportReuseInit)
         std::cout << "ERROR KernelLaunches::restoreQueue(): queue does not support reuse init\n";
       else
-        resetData<Q><<<1, 1>>>(q.get());
+        resetData<Q><<<1, 1>>>(q->getDeviceAddress());
     }
 
     template<class InsertFunc>
@@ -326,7 +326,7 @@ namespace KernelLaunches
       typedef CurrentMultiphaseQueue<Q, 0> Phase0Q;
 
       int b = MIN((num + 512 - 1) / 512, 104);
-      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
+      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q->getDeviceAddress()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }
 

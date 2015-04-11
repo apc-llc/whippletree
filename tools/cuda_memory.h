@@ -30,77 +30,75 @@
 //  THE SOFTWARE.
 //
 
-
-
-
 #ifndef INCLUDED_CUDA_PTR
 #define INCLUDED_CUDA_PTR
 
 #pragma once
 
+#include <algorithm>
 
 template <typename T>
 class device_ptr
 {
 private:
-  device_ptr(const device_ptr& p);
-  device_ptr& operator =(const device_ptr& p);
+	device_ptr(const device_ptr& p);
+	device_ptr& operator =(const device_ptr& p);
 
-  T* ptr;
+	T* ptr;
 
-  static void release(T* ptr)
-  {
-    if (ptr != nullptr)
-      cudaFree(ptr);
-  }
+	static void release(T* ptr)
+	{
+		if (ptr != nullptr)
+			cudaFree(ptr);
+	}
 
 public:
-  explicit device_ptr(T* ptr = nullptr)
-    : ptr(ptr)
-  {
-  }
+	explicit device_ptr(T* ptr = nullptr)
+		: ptr(ptr)
+	{
+	}
 
-  device_ptr(device_ptr&& p)
-    : ptr(p.ptr)
-  {
-    p.ptr = nullptr;
-  }
+	device_ptr(device_ptr&& p)
+		: ptr(p.ptr)
+	{
+		p.ptr = nullptr;
+	}
 
-  ~device_ptr()
-  {
-    release(ptr);
-  }
+	~device_ptr()
+	{
+		release(ptr);
+	}
 
-  device_ptr& operator =(device_ptr&& p)
-  {
-    std::swap(ptr, p.ptr);
-    return *this;
-  }
+	device_ptr& operator =(device_ptr&& p)
+	{
+		std::swap(ptr, p.ptr);
+		return *this;
+	}
 
-  void release()
-  {
-    release(ptr);
-    ptr = nullptr;
-  }
+	void release()
+	{
+		release(ptr);
+		ptr = nullptr;
+	}
 
-  T** bind()
-  {
-    release(ptr);
-    return &ptr;
-  }
+	T** bind()
+	{
+		release(ptr);
+		return &ptr;
+	}
 
-  T* unbind()
-  {
-    T* temp = ptr;
-    ptr = nullptr;
-    return temp;
-  }
+	T* unbind()
+	{
+		T* temp = ptr;
+		ptr = nullptr;
+		return temp;
+	}
 
-  T* operator ->() const { return ptr; }
+	T* operator ->() const { return ptr; }
 
-  T& operator *() const { return *ptr; }
+	T& operator *() const { return *ptr; }
 
-  operator T*() const { return ptr; }
+	operator T*() const { return ptr; }
 
 };
 
@@ -108,31 +106,40 @@ public:
 #include <memory>
 #include "utils.h"
 
-struct device_ptr_deleter
+template<typename T = void>
+class GPUMem
 {
-  void operator()(void* ptr)
-  {
-    cudaFree(ptr);
-  }
+	void* m_ptr;
+
+public :
+
+	T* getDeviceAddress() { return static_cast<T*>(m_ptr); }
+
+	GPUMem(void* ptr) : m_ptr(ptr) { }
+
+	~GPUMem()
+	{
+		CHECKED_CALL(cudaFree(m_ptr));
+	}
 };
 
 template <typename T>
-inline std::unique_ptr<T, device_ptr_deleter> deviceAlloc()
+inline std::unique_ptr<GPUMem<T> > deviceAlloc()
 {
-  void* ptr;
-  printf("trying to allocate %.2f MB cuda buffer (%zu bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
-  CHECKED_CALL(cudaMalloc(&ptr, sizeof(T)));
-  return std::unique_ptr<T, device_ptr_deleter>(static_cast<T*>(ptr));
+	void* ptr;
+	printf("trying to allocate %.2f MB cuda buffer (%zu bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
+	CHECKED_CALL(cudaMalloc(&ptr, sizeof(T)));
+	return std::unique_ptr<GPUMem<T> >(new GPUMem<T>(ptr));
 }
 
 template <typename T>
-inline std::unique_ptr<T[], device_ptr_deleter> deviceAllocArray(size_t N)
+inline std::unique_ptr<GPUMem<T> > deviceAllocArray(size_t N)
 {
-  void* ptr;
-  printf("trying to allocate %.2f MB cuda buffer (%zu * %zu bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
-  CHECKED_CALL(cudaMalloc(&ptr, N * sizeof(T)));
-  return std::unique_ptr<T[], device_ptr_deleter>(static_cast<T*>(ptr));
+	void* ptr;
+	printf("trying to allocate %.2f MB cuda buffer (%zu * %zu bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
+	CHECKED_CALL(cudaMalloc(&ptr, N * sizeof(T)));
+	return std::unique_ptr<GPUMem<T> >(new GPUMem<T>(ptr));
 }
 
+#endif	// INCLUDED_CUDA_PTR
 
-#endif  // INCLUDED_CUDA_PTR

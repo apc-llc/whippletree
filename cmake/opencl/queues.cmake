@@ -31,6 +31,34 @@ SET(QUEUE_SOURCES
 	${SOURCE_DIR}/queuingMultiPhase.cuh
 	${SOURCE_DIR}/queuingPerProc.cuh
 )
+SET(UTILS_SOURCES
+	${SOURCE_DIR}/tools/bitonicSort.cuh
+	${SOURCE_DIR}/tools/cl_memory.h
+	${SOURCE_DIR}/tools/common.cuh
+	${SOURCE_DIR}/tools/cuda_memory.h
+	${SOURCE_DIR}/tools/types.h
+	${SOURCE_DIR}/tools/utils.h
+)
+SET(OCL_SOURCES
+	${SOURCE_DIR}/OCL/CLBuffer.cpp
+	${SOURCE_DIR}/OCL/CLBuffer.h
+	${SOURCE_DIR}/OCL/CLBufferShared.cpp
+	${SOURCE_DIR}/OCL/CLBufferShared.h
+	${SOURCE_DIR}/OCL/CLCommandQueue.cpp
+	${SOURCE_DIR}/OCL/CLCommandQueue.h
+	${SOURCE_DIR}/OCL/CLContext.cpp
+	${SOURCE_DIR}/OCL/CLContext.h
+	${SOURCE_DIR}/OCL/CLDevice.cpp
+	${SOURCE_DIR}/OCL/CLDevice.h
+	${SOURCE_DIR}/OCL/CLKernel.cpp
+	${SOURCE_DIR}/OCL/CLKernel.h
+	${SOURCE_DIR}/OCL/CLMem.cpp
+	${SOURCE_DIR}/OCL/CLMem.h
+	${SOURCE_DIR}/OCL/CLPlatform.cpp
+	${SOURCE_DIR}/OCL/CLPlatform.h
+	${SOURCE_DIR}/OCL/CLProgram.cpp
+	${SOURCE_DIR}/OCL/CLProgram.h
+)
 
 SOURCE_GROUP("General" FILES
 	${GENERAL}
@@ -41,10 +69,14 @@ SOURCE_GROUP("Queues" FILES
 SOURCE_GROUP("Techniques" FILES
 	${TECHNIQUE_SOURCES}
 )
+SOURCE_GROUP("Tools" FILES
+	${TOOLS_SOURCES}
+)
+SOURCE_GROUP("OpenCL" FILES
+	${OCL_SOURCES}
+)
 
-set(queues_SOURCES ${GENERAL} ${TECHNIQUE_SOURCES} ${QUEUE_SOURCES})
+set(queues_SOURCES ${GENERAL} ${TECHNIQUE_SOURCES} ${QUEUE_SOURCES} ${TOOLS_SOURCES} ${OCL_SOURCES})
 
-#set(queues_LIBRARY queues PARENT_SCOPE)
-set(queues_INCLUDE_DIR "${SOURCE_DIR}")
+include_directories(${SOURCE_DIR})
 
-include_directories(${queues_INCLUDE_DIR})

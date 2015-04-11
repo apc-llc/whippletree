@@ -30,110 +30,113 @@
 //  THE SOFTWARE.
 //
 
-
-
-
 #ifndef INCLUDED_CL_PTR
 #define INCLUDED_CL_PTR
 
 #pragma once
 
+#include <utility>
 
 template <typename T>
 class device_ptr
 {
 private:
-  device_ptr(const device_ptr& p);
-  device_ptr& operator =(const device_ptr& p);
+	device_ptr(const device_ptr& p);
+	device_ptr& operator =(const device_ptr& p);
 
-  T* ptr;
+	T* ptr;
 
-  static void release(T* ptr)
-  {
-    if (ptr != nullptr)
-      cudaFree(ptr);
-  }
+	static void release(T* ptr)
+	{
+		if (ptr != nullptr)
+			cudaFree(ptr);
+	}
 
 public:
-  explicit device_ptr(T* ptr = nullptr)
-    : ptr(ptr)
-  {
-  }
+	explicit device_ptr(T* ptr = nullptr)
+		: ptr(ptr)
+	{
+	}
 
-  device_ptr(device_ptr&& p)
-    : ptr(p.ptr)
-  {
-    p.ptr = nullptr;
-  }
+	device_ptr(device_ptr&& p)
+		: ptr(p.ptr)
+	{
+		p.ptr = nullptr;
+	}
 
-  ~device_ptr()
-  {
-    release(ptr);
-  }
+	~device_ptr()
+	{
+		release(ptr);
+	}
 
-  device_ptr& operator =(device_ptr&& p)
-  {
-    std::swap(ptr, p.ptr);
-    return *this;
-  }
+	device_ptr& operator =(device_ptr&& p)
+	{
+		std::swap(ptr, p.ptr);
+		return *this;
+	}
 
-  void release()
-  {
-    release(ptr);
-    ptr = nullptr;
-  }
+	void release()
+	{
+		release(ptr);
+		ptr = nullptr;
+	}
 
-  T** bind()
-  {
-    release(ptr);
-    return &ptr;
-  }
+	T** bind()
+	{
+		release(ptr);
+		return &ptr;
+	}
 
-  T* unbind()
-  {
-    T* temp = ptr;
-    ptr = nullptr;
-    return temp;
-  }
+	T* unbind()
+	{
+		T* temp = ptr;
+		ptr = nullptr;
+		return temp;
+	}
 
-  T* operator ->() const { return ptr; }
+	T* operator ->() const { return ptr; }
 
-  T& operator *() const { return *ptr; }
+	T& operator *() const { return *ptr; }
 
-  operator T*() const { return ptr; }
+	operator T*() const { return ptr; }
 
 };
 
 
-#include <CL/cl.h>
+#include "OCL/CLMem.h"
+#include <map>
 #include <memory>
 #include "utils.h"
 
-struct device_ptr_deleter
+static std::map<void*, CLMem*> allocations;
+
+template<typename T = void>
+class GPUMem
 {
-  void operator()(void* ptr)
-  {
-    CHECKED_CALL(clReleaseMemObject(ptr));
-  }
+	std::unique_ptr<CLMem> m_clMem;
+
+public :
+
+	T* getDeviceAddress() { return static_cast<T*>(m_clMem->getDeviceAddress()); }
+
+	GPUMem(CLMem* clMem) : m_clMem(clMem) { }
 };
 
-template <typename T>
-inline std::unique_ptr<T, device_ptr_deleter> deviceAlloc()
+template<typename T>
+inline std::unique_ptr<GPUMem<T> > deviceAlloc()
 {
-  printf("trying to allocate %.2f MB cuda buffer (%zu bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
-  cl_mem ptr = clCreateBuffer(getContext(), CL_MEM_READ_WRITE, sizeof(T));
-  CHECKED_CALL(status);
-  return std::unique_ptr<cl_mem, device_ptr_deleter>(static_cast<cl_mem>(ptr));
+	printf("trying to allocate %.2f MB cuda buffer (%zu bytes)\n", sizeof(T) * 1.0 / (1024.0 * 1024.0), sizeof(T));
+	CLMem* clMem = CLMem::create(CL_MEM_READ_WRITE, sizeof(T));
+	return std::unique_ptr<GPUMem<T> >(new GPUMem<T>(clMem));
 }
 
-template <typename T>
-inline std::unique_ptr<T[], device_ptr_deleter> deviceAllocArray(size_t N)
+template<typename T>
+inline std::unique_ptr<GPUMem<T> > deviceAllocArray(size_t N)
 {
-  printf("trying to allocate %.2f MB cuda buffer (%zu * %zu bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
-  cl_mem ptr = clCreateBuffer(getContext(), CL_MEM_READ_WRITE, N * sizeof(T));
-  CHECKED_CALL(status);
-  return std::unique_ptr<cl_mem, device_ptr_deleter>(static_cast<cl_mem>(ptr));
+	printf("trying to allocate %.2f MB cuda buffer (%zu * %zu bytes)\n", N * sizeof(T) * 1.0 / (1024.0 * 1024.0), N, sizeof(T));
+	CLMem* clMem = CLMem::create(CL_MEM_READ_WRITE, N * sizeof(T));
+	return std::unique_ptr<GPUMem<T> >(new GPUMem<T>(clMem));
 }
 
+#endif	// INCLUDED_CL_PTR
 
-#endif  // INCLUDED_CL_PTR

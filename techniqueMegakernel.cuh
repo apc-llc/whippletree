@@ -540,7 +540,7 @@ namespace Megakernel
 
   protected:    
     
-    std::unique_ptr<Q, device_ptr_deleter> q;
+    std::unique_ptr<GPUMem<Q> > q;
 
     int blockSize[PROCINFO::NumPhases];
     int blocks[PROCINFO::NumPhases];
@@ -637,7 +637,7 @@ namespace Megakernel
 
     void init()
     {
-      q = std::unique_ptr<Q, device_ptr_deleter>(deviceAlloc<Q>());
+      q = std::unique_ptr<GPUMem<Q> >(deviceAlloc<Q>());
 
       int magic = 2597, null = 0;
 #if defined(_CUDA)
@@ -651,7 +651,7 @@ namespace Megakernel
 #error "Implement in OpenCL"
 #endif
 
-      initQueue<Q> <<<512, 512>>>(q.get());
+      initQueue<Q> <<<512, 512>>>(q->getDeviceAddress());
       CHECKED_CALL(cudaDeviceSynchronize());
 
 
@@ -676,7 +676,7 @@ namespace Megakernel
         std::cout << "ERROR Megakernel::recordQueue(): queue does not support reuse init\n";
       else
       {
-        recordData<Q><<<1, 1>>>(q.get());
+        recordData<Q><<<1, 1>>>(q->getDeviceAddress());
         CHECKED_CALL(cudaDeviceSynchronize());
       }
     }
@@ -686,7 +686,7 @@ namespace Megakernel
       if(!Q::supportReuseInit)
         std::cout << "ERROR Megakernel::restoreQueue(): queue does not support reuse init\n";
       else
-        resetData<Q><<<1, 1>>>(q.get());
+        resetData<Q><<<1, 1>>>(q->getDeviceAddress());
     }
 
 
@@ -701,7 +701,7 @@ namespace Megakernel
       //Phase0Q::CurrentPhaseProcInfo::print();
 
       int b = MIN((num + 512 - 1) / 512, 104);
-      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q.get()), num);
+      initData<InsertFunc, Phase0Q><<<b, 512>>>(reinterpret_cast<Phase0Q*>(q->getDeviceAddress()), num);
       CHECKED_CALL(cudaDeviceSynchronize());
     }
 
@@ -766,7 +766,7 @@ namespace Megakernel
 
       TCore::preCall(stream);
 
-      LaunchVisitor v(TCore::q.get(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], stream, shutdown);
+      LaunchVisitor v(TCore::q->getDeviceAddress(), phase, TCore::blocks[phase], TCore::blockSize[phase], TCore::sharedMemSum[phase], TCore::sharedMem[phase], stream, shutdown);
       Q::template staticVisit<LaunchVisitor>(v);
 
       TCore::postCall(stream);
@@ -789,7 +789,7 @@ namespace Megakernel
 
       TCore::preCall(stream);
 
-      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false>, StopCriteria><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase], stream>>>(TCore::q.get(), TCore::sharedMem[Phase], 0, shutdown);
+      megakernel<ThisQ, typename ThisQ::CurrentPhaseProcInfo, ApplicationContext, LoadToShared, MultiElement, (ThisQ::globalMaintainMinThreads > 0)?true:false,TimeLimiter<TimeLimitInKCycles,false>, StopCriteria><<<TCore::blocks[Phase], TCore::blockSize[Phase], TCore::sharedMemSum[Phase], stream>>>(TCore::q->getDeviceAddress(), TCore::sharedMem[Phase], 0, shutdown);
 
       TCore::postCall(stream);
     }
