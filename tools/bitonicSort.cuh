@@ -42,6 +42,9 @@ namespace Tools
 
   namespace Sort
   {
+
+#if defined(_DEVICE)
+
     template<class Key, class Value>
     __device__ inline void bitonic_comp(volatile Key& key_a, volatile Key& key_b,
                                         volatile Value& val_a, volatile Value& val_b,
@@ -92,6 +95,9 @@ namespace Tools
       }
       syncthreads(1, elements/2);
     }
+
+#endif
+
   }
 }
 

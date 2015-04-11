@@ -66,6 +66,7 @@ set(CUDA_SEPARABLE_COMPILATION ON)
 include_directories(${CUDA_INCLUDE_DIRS})
 
 add_definitions(-D_CUDA)
+add_definitions(-D_DEVICE)
 add_definitions(-DthreadIdx_x=threadIdx.x)
 add_definitions(-DblockDim_x=blockDim.x)
 add_definitions(-DblockIdx_x=blockIdx.x)

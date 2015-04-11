@@ -44,6 +44,8 @@ public:
   static int globalMaintainSharedMemory(int Threads) { return 0; }
   static const int requiredShared = 0;
 
+#if defined(_DEVICE)
+
   __inline__ __device__ void init() 
   {
     if(TWarnings) printf("Warning: Queue does not implement init\n");
@@ -141,6 +143,8 @@ public:
   __inline__ __device__ void globalMaintain()
   { }
 
+#endif
+
   static std::string name()
   {
     if(TWarnings) 
@@ -154,6 +158,9 @@ template<class ProcedureInfo, template<class /*PI*/> class RealQueue, template<c
 class QueueEnqueueWrapper : public RealQueue<ProcedureInfo>
 {
 public:
+
+#if defined(_DEVICE)
+
    template<class PROCEDURE>
   __inline__ __device__ bool enqueueInitial(typename PROCEDURE::ExpectedData data) 
   {
@@ -177,12 +184,17 @@ public:
   {
     return RealQueue<ProcedureInfo>:: template enqueue <threads, typename MatchMaker<PROCEDURE>::Match>(data);
   }
+
+#endif
+
 };
 
 template<class TAdditionalData>
 class BasicQueue
 {
 public:
+
+#if defined(_DEVICE)
 
   __inline__ __device__ void init() 
   {
@@ -245,6 +257,8 @@ public:
     return false;
   }
 
+#endif
+
   static std::string name()
   {
     return "UnnamedBasicQueue";
@@ -255,6 +269,9 @@ template<>
 class BasicQueue<void>
 {
 public:
+
+#if defined(_DEVICE)
+
    __inline__ __device__ void init() 
   {
     printf("Warning: BasicQueue does not implement init\n");
@@ -316,6 +333,8 @@ public:
     return false;
   }
 
+#endif
+
   static std::string name()
   {
     return "UnnamedBasicQueue";
@@ -328,12 +347,15 @@ typedef Queue<false> ZeroQueue;
 template<class ProcInfo>
 class  IgnoreQueue : public ZeroQueue { };
 
+#if defined(_DEVICE)
 
 template<class Q>
 __global__ void initQueue(Q* q)
 {
   q->init();
 }
+
+#endif
 
 template<unsigned int Size>
 class Min16

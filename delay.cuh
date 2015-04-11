@@ -32,13 +32,19 @@
 
 #pragma once
 
+#if defined(_DEVICE)
 
 extern __device__ volatile float* BigData();
+
+#endif
 
 template<int ITS, int REGS = 16>
 class DelayClock
 {
 public:
+
+#if defined(_DEVICE)
+
   __device__ __inline__
   static void delay()
   {
@@ -65,6 +71,9 @@ public:
     for(int r = 0; r < REGS; ++r)
        BigData()[threadIdx_x+r*32] =  values[r];
   }
+
+#endif
+
   static std::string name() { return "DelayClock";/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "available Giga Cycles (" + std::to_string((long long)REGS) + "regs)";}
   static double performancePerSec(int executedThreads, double s) { return 1.0*executedThreads*ITS/1000000000.0/s; }
@@ -73,10 +82,16 @@ template<int ITS>
 class DelayClock<ITS,0>
 {
 public:
+
+#if defined(_DEVICE)
+
   __device__ __inline__
   static void delay()
   {
   }
+
+#endif
+
   static std::string name() { return "DelayNone"; }
   static std::string performanceName() { return "Nothing"; }
   static double performancePerSec(int executedThreads, double s) { return 0.0; }
@@ -86,6 +101,9 @@ template<int ITS, int REGS = 16>
 class DelayFMADS
 {
 public:
+  
+#if defined(_DEVICE)
+
   __device__ __inline__
   static void delay()
   {
@@ -105,6 +123,9 @@ public:
     for(int r = 0; r < REGS; ++r)
        BigData()[threadIdx_x+r*32] =  values[r];
   }
+
+#endif
+
   static std::string name() { return "DelayFMADS";/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "GFLOPS (" + std::to_string((long long)REGS) + "regs)";}
   static double performancePerSec(int executedThreads, double s) { return 2.0*executedThreads*ITS/1000000000.0/s; }
@@ -114,10 +135,16 @@ template<int ITS>
 class DelayFMADS<ITS,0>
 {
 public:
+
+#if defined(_DEVICE)
+
   __device__ __inline__
   static void delay()
   {
   }
+
+#endif
+
   static std::string name() { return "DelayNone"; }
   static std::string performanceName() { return "Nothing"; }
   static double performancePerSec(int executedThreads, double s) { return 0.0; }
@@ -128,6 +155,9 @@ template<int ITS, int REGS = 16>
 class DelayMem
 {
 public:
+
+#if defined(_DEVICE)
+
   __device__ __inline__
   static void delay()
   {
@@ -144,6 +174,9 @@ public:
       __threadfence_block();  
     }
   }
+
+#endif
+
   static std::string name() { return std::string("DelayMem");/*+std::to_string((unsigned long long)ITS);*/ }
   static std::string performanceName() { return "transfer rate GB/s(" + std::to_string((long long)REGS) + "regs)";}
   static double performancePerSec(int executedThreads, double s) { return 4.0*executedThreads*ITS/1000000000.0/s; }
@@ -153,10 +186,16 @@ template<int ITS>
 class DelayMem<ITS,0>
 {
 public:
+
+#if defined(_DEVICE)
+
   __device__ __inline__
   static void delay()
   {
   }
+
+#endif
+
   static std::string name() { return "DelayNone"; }
   static std::string performanceName() { return "Nothing"; }
   static double performancePerSec(int executedThreads, double s) { return 0.0; }

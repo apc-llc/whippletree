@@ -52,6 +52,8 @@ struct AdditionalDataInfo<void>
   static const int size = 0;
 };
 
+#if defined(_DEVICE)
+
 template<int Mod, int MaxWarps>
 __device__ __inline__ int warpBroadcast(int val, int who)
 {
@@ -211,7 +213,7 @@ __inline__ __device__ volatile uchar1& store(volatile uchar1& dest, const uchar1
 	return dest;
 }
 
-
+#endif
 
 template<uint TElementSize>
 struct StorageElement16
@@ -224,6 +226,9 @@ struct StorageElement16
 template <int i>
 struct StorageDude16
 {
+
+#if defined(_DEVICE)
+
 	template<uint ElementSize>
 	__inline__ __device__ static StorageElement16<ElementSize>& assign(StorageElement16<ElementSize>& dest, const StorageElement16<ElementSize>& src)
 	{
@@ -247,11 +252,17 @@ struct StorageDude16
 		::store(dest.storage[i], src.storage[i]);
 		return dest;
 	}
+
+#endif
+
 };
 
 template <>
 struct StorageDude16<0>
 {
+
+#if defined(_DEVICE)
+
 	template<uint ElementSize>
 	__inline__ __device__ static StorageElement16<ElementSize>& assign(StorageElement16<ElementSize>& dest, const StorageElement16<ElementSize>& src)
 	{
@@ -272,8 +283,12 @@ struct StorageDude16<0>
 		::store(dest.storage[0], src.storage[0]);
 		return dest;
 	}
+
+#endif
+
 };
 
+#if defined(_DEVICE)
 
 template<uint ElementSize>
 __inline__ __device__ StorageElement16<ElementSize>& assign(StorageElement16<ElementSize>& dest, const StorageElement16<ElementSize>& src)
@@ -293,11 +308,14 @@ __inline__ __device__ volatile StorageElement16<ElementSize>& store(volatile Sto
 	return StorageDude16<StorageElement16<ElementSize>::num_storage_owords - 1>::store(dest, src);
 }
 
+#endif
 
 struct StorageElement8
 {
 	uint2 storage;
 };
+
+#if defined(_DEVICE)
 
 __inline__ __device__ StorageElement8& assign(StorageElement8& dest, const StorageElement8& src)
 {
@@ -317,6 +335,7 @@ __inline__ __device__ volatile StorageElement8& store(volatile StorageElement8& 
 	return dest;
 }
 
+#endif
 
 template<uint TElementSize, bool take_eight>
 struct StorageElementSelector
@@ -412,16 +431,29 @@ struct vectorCopy
 
 	typedef typename selectVectorCopyType<byte_width>::type vector_type;
 
+#if defined(_DEVICE)
+
 	__device__ __inline__ static void storeThreaded(volatile void* dest, const void* src, int i);
 	__device__ __inline__ static void loadThreaded(void* dest, const volatile void* src, int i);
+
+#endif
+
 };
 
 template <int threads>
 struct vectorCopy<0, threads>
 {
+
+#if defined(_DEVICE)
+
 	__device__ __inline__ static void storeThreaded(volatile void* dest, const void* src, int i) {}
 	__device__ __inline__ static void loadThreaded(void* dest, const volatile void* src, int i) {}
+
+#endif
+
 };
+
+#if defined(_DEVICE)
 
 template <unsigned int bytes, int threads>
 __device__ __inline__ void vectorCopy<bytes, threads>::storeThreaded(volatile void* dest, const void* src, int i)
@@ -528,6 +560,8 @@ __device__ __inline__  void multiRead(T* data, volatile T* data_in)
   //}
 //}
 
+#endif
+
 template<uint TElementSize, class TAdditionalData, uint TQueueSize>
 class QueueStorage
 {
@@ -543,6 +577,8 @@ public:
   {
     return "";
   }
+
+#if defined(_DEVICE)
   
   __inline__ __device__ void init()
   {
@@ -569,7 +605,7 @@ public:
     additionalStorage[pos.x] = *reinterpret_cast<QueueAddtionalData_T*>(&additionalData);
   }
 
-    template<int TThreadsPerElenent, class T>
+  template<int TThreadsPerElenent, class T>
   __inline__ __device__ void writeDataParallel(T* data, TAdditionalData additionalData, uint2 pos)
   {
     pos.x = pos.x%TQueueSize;
@@ -600,6 +636,9 @@ public:
   __inline__ __device__ void storageFinishRead(uint2 pos)
   {
   }
+
+#endif
+
 };
 
 template<uint TElementSize, uint TQueueSize>
@@ -615,6 +654,8 @@ public:
   {
     return "";
   }
+
+#if defined(_DEVICE)
 
   __inline__ __device__ void init()
   {
@@ -667,6 +708,9 @@ public:
   __inline__ __device__ void storageFinishRead(uint2 pos)
   {
   }
+
+#endif
+
 };
 
 
@@ -677,16 +721,22 @@ class QueueBuilder : public ::BasicQueue<TAdditionalData>, protected TQueueStora
 
 public:
 
+#if defined(_DEVICE)
+
   __inline__ __device__ void init()
   {
     QueueStub::init();
     TQueueStorage::init();
   }
 
+#endif
+
   static std::string name()
   {
     return QueueStub::name() + TQueueStorage::name();
   }
+
+#if defined(_DEVICE)
 
   template<class Data>
   __inline__ __device__ bool enqueueInitial(Data data, TAdditionalData additionalData) 
@@ -745,6 +795,9 @@ public:
     TQueueStorage::storageFinishRead(offset_take);
     return offset_take.y;
   }
+
+#endif
+
 };
 
 template<uint TElementSize, uint TQueueSize, class QueueStub, class TQueueStorage >
@@ -754,16 +807,22 @@ class QueueBuilder<TElementSize, TQueueSize, void, QueueStub, TQueueStorage>
   static const uint ElementSize = (TElementSize + sizeof(uint) - 1)/sizeof(uint);
 public:
 
+#if defined(_DEVICE)
+
   __inline__ __device__ void init()
   {
     QueueStub::init();
     TQueueStorage::init();
   }
 
+#endif
+
   static std::string name()
   {
     return QueueStub::name() + TQueueStorage::name();
   }
+
+#if defined(_DEVICE)
 
   template<class Data>
   __inline__ __device__ bool enqueueInitial(Data data) 
@@ -789,7 +848,7 @@ public:
     return pos.x >= 0;
   }
 
-   template<int TThreadssPerElment, class Data>
+  template<int TThreadssPerElment, class Data>
   __device__ bool enqueue(Data* data) 
   {        
     int2 pos = make_int2(-1,0);
@@ -820,6 +879,9 @@ public:
     TQueueStorage::storageFinishRead(offset_take);
     return offset_take.y;
   }
+
+#endif
+
 };
 
 
@@ -834,6 +896,8 @@ class MemoryAllocFastest
   uint allocPointer;
 public:
   uint4 volatile dataAllocation[AllocElements/4];
+
+#if defined(_DEVICE)
 
   __inline__ __device__ void init()
   {
@@ -865,6 +929,9 @@ public:
     __inline__ __device__  void freeOffset(int offset, int size)
   {
   }
+
+#endif
+
 };
 
 //FIXME: allocator is only safe for elements with are a power of two mulitple of 16 bytes (or smaller than 16 bytes)
@@ -879,6 +946,8 @@ class MemoryAlloc
   uint allocPointer;
 public:
   uint4 volatile dataAllocation[AllocElements];
+
+#if defined(_DEVICE)
 
   __inline__ __device__ void init()
   {
@@ -935,6 +1004,9 @@ public:
     uint bits = ((1u << size)-1u) << withinoffset;
     atomicAnd(flags + bigoffset, ~bits);
   }
+
+#endif
+
 };
 
 template<uint TAvgElementSize, class TAdditionalData, uint TQueueSize, bool TCheckSet = false, template<uint > class MemAlloc = MemoryAlloc>
@@ -960,6 +1032,8 @@ public:
   {
     return std::string("Alloced");// + std::to_string((unsigned long long)AdditionalSize) + " " + std::to_string((unsigned long long)TAvgElementSize);
   }
+
+#if defined(_DEVICE)
   
   __inline__ __device__ void init()
   {
@@ -1063,6 +1137,9 @@ public:
       }
     }
   }
+
+#endif
+
 };
 
 template<uint TAvgElementSize, uint TQueueSize, bool TCheckSet, template<uint > class MemAlloc>
@@ -1083,6 +1160,8 @@ public:
   {
     return "Alloced";
   }
+
+#if defined(_DEVICE)
   
   __inline__ __device__ void init()
   {
@@ -1179,6 +1258,8 @@ public:
       }
     }
   }
+
+#endif
+
 };
 
- 

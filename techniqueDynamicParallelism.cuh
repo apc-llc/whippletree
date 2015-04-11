@@ -50,6 +50,9 @@
 
 namespace DynamicParallelism
 {
+
+#if defined(_DEVICE)
+
   __host__ __device__ __inline__ uint divup(uint a, uint b)
   {
     return (a + b - 1)/b;
@@ -91,10 +94,15 @@ namespace DynamicParallelism
     #endif
   }
 
+#endif
+
   class DynQueue : public Queue<>
   {
   public:
   template<class PROCEDURE>
+
+#if defined(_DEVICE)
+
     __inline__ __device__ bool enqueue(typename PROCEDURE::ExpectedData data) 
     {
       launchKernel<PROCEDURE>(data);
@@ -108,7 +116,12 @@ namespace DynamicParallelism
         enqueue<PROCEDURE>(*data);
       return true;
     }
+
+#endif
+
   };
+
+#if defined(_DEVICE)
 
   template<class PROC, class CUSTOM>
   __global__ void executeProc(typename PROC::ExpectedData data)
@@ -126,6 +139,7 @@ namespace DynamicParallelism
       PROC:: template execute<DynQueue, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, num, nullptr, &data, s_data);
   }
 
+#endif
 
   //#define PROCCASE(PROCID) \
   //case PROCINFO:: Procedure ## PROCID :: ProcedureId: \
@@ -143,6 +157,8 @@ namespace DynamicParallelism
     int procId;
     void* execData;
 
+#if defined(_DEVICE)
+
     __device__ __inline__ InitLaunchVisitor(int pid, void* data) : procId(pid), execData(data) { }
 
     template<class TProcedure, class CUSTOM>
@@ -157,7 +173,12 @@ namespace DynamicParallelism
       }
       return false;
     }
+
+#endif
+
   };
+
+#if defined(_DEVICE)
 
   template<class Q, class PROCINFO, class CUSTOM>
   __global__ void initLaunch(Q* q, uint4 sharedMemDist, int timeLimit)
@@ -194,6 +215,9 @@ namespace DynamicParallelism
     }
 #endif
   }
+
+#endif
+
 //#undef PROCCASE
 
   template<template <class> class QUEUE, class PROCINFO, class CUSTOM, bool UseQueue = false, bool NoCopy = false>
@@ -373,6 +397,7 @@ namespace DynamicParallelism
 
   };
 
+#if defined(_DEVICE)
 
   __device__ int inFlightBlocks = 0;
 
@@ -463,6 +488,8 @@ namespace DynamicParallelism
 #endif
     return 0;
   }
+
+#endif
   
   template<class ProcInfo, class Q, bool ExecStats, bool NoCopy>
   struct LaunchVisitor
@@ -474,6 +501,8 @@ namespace DynamicParallelism
     int2* execStats;
     cudaStream_t* streams;
     Q* q;
+
+#if defined(_DEVICE)
 
     __device__ __inline__ LaunchVisitor(int* _queueCounts, int2* _execStats, cudaStream_t* _streams, Q* queue) : fullonly(true), launched(0), i(0), queueCounts(_queueCounts), execStats(_execStats), streams(_streams), q(queue) { }
 
@@ -494,7 +523,12 @@ namespace DynamicParallelism
       ++i;
       return false;
     }
+
+#endif
+
   };
+
+#if defined(_DEVICE)
 
   template<class PROCINFO, class CUSTOM, class Q, bool ExecStats, bool NoCopy, bool SupportTimelimit>
   __global__ void dynamicParallelismController(Q* q, int timeLimitInKCycles)
@@ -586,6 +620,7 @@ namespace DynamicParallelism
 #endif
   }
 
+#endif
 
   template<template <class> class QUEUE, class PROCINFO, class CUSTOM, bool NoCopy>
   class Technique<QUEUE, PROCINFO, CUSTOM, true, NoCopy>

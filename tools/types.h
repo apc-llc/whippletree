@@ -39,39 +39,90 @@ typedef unsigned short ushort;
 
 namespace Tools
 {
-  struct dim
-  {
-    union
-    {
-      struct
-      {
-        uint x, y, z;
-      };
-      uint d[3];
-    };
-    dim(uint _x, uint _y = 1, uint _z = 1) :
-      x(_x), y(_y), z(_z)
-    {
-    }
-  };
+	struct dim
+	{
+		union
+		{
+			struct
+			{
+				uint x, y, z;
+			};
+			uint d[3];
+		};
+		dim(uint _x, uint _y = 1, uint _z = 1) :
+			x(_x), y(_y), z(_z)
+		{
+		}
+	};
 }
 
 #if defined(_OPENCL)
-struct int4
+typedef unsigned char uchar;
+struct uchar1 { char x; };
+struct uchar2 { char x, y; };
+struct uchar3 { char x, y, z; };
+
+static uchar1 make_uchar1(uchar x)
 {
-  int x, y, z, w;
-};
+	uchar1 result;
+	result.x = x;
+}
+
+static uchar2 make_uchar2(uchar x, uchar y)
+{
+	uchar2 result;
+	result.x = x; result.y = y;
+}
+
+static uchar3 make_uchar3(uchar x, uchar y, uchar z)
+{
+	uchar3 result;
+	result.x = x; result.y = y; result.z = z;
+}
+
+struct int1 { int x; };
+struct int2 { int x, y; };
+struct int4 { int x, y, z, w; };
+
+static int1 make_int1(int x)
+{
+	int1 result;
+	result.x = x;
+}
+
+static int2 make_int2(int x, int y)
+{
+	int2 result;
+	result.x = x; result.y = y;
+}
 
 static int4 make_int4(int x, int y, int z, int w)
 {
-  int4 result;
-  result.x = x; result.y = y; result.z = z; result.w = w;
+	int4 result;
+	result.x = x; result.y = y; result.z = z; result.w = w;
 }
 
-struct uint4
+struct uint1 { int x; };
+struct uint2 { int x, y; };
+struct uint4 { int x, y, z, w; };
+
+static uint1 make_uint1(int x)
 {
-  int x, y, z, w;
-};
+	uint1 result;
+	result.x = x;
+}
+
+static uint2 make_uint2(int x, int y)
+{
+	uint2 result;
+	result.x = x; result.y = y;
+}
+
+static uint4 make_uint4(int x, int y, int z, int w)
+{
+	uint4 result;
+	result.x = x; result.y = y; result.z = z; result.w = w;
+}
 #endif
 
 #endif //TOOLS_TYPES_INCLUDED

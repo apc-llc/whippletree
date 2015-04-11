@@ -51,6 +51,9 @@
 
 namespace Megakernel
 {
+
+#if defined(_DEVICE)
+
 #if defined(_CUDA)
   extern __device__ volatile int doneCounterVar;
   extern __device__ volatile int endCounterVar;
@@ -89,6 +92,8 @@ namespace Megakernel
     q->reset();
   }
 
+#endif
+
   template<class Q, class ProcInfo, class PROC, class CUSTOM, bool Itemized,  bool MultiElement>
   class FuncCaller;
 
@@ -97,6 +102,9 @@ namespace Megakernel
   class FuncCaller<Q, ProcInfo, PROC, CUSTOM, false, false>
   {
   public:
+
+#if defined(_DEVICE)
+
     __device__ __inline__
     static void call(Q* queue, void* data, int hasData, uint* shared)
     {
@@ -108,12 +116,18 @@ namespace Megakernel
       if(PROC::NumThreads == 0 || threadIdx_x < nThreads)
         PROC :: template execute<Q, Context<PROC::NumThreads, false, CUSTOM> >(threadIdx_x, nThreads, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
+
+#endif
+
   };
 
   template<class Q, class ProcInfo, class PROC, class CUSTOM>
   class FuncCaller<Q, ProcInfo, PROC, CUSTOM, false, true>
   {
   public:
+
+#if defined(_DEVICE)
+
     __device__ __inline__
     static void call(Q* queue, void* data, int hasData, uint* shared)
     {
@@ -133,18 +147,27 @@ namespace Megakernel
       }
       
     }
+
+#endif
+
   };
 
   template<class Q, class ProcInfo, class PROC, class CUSTOM, bool MultiElement>
   class FuncCaller<Q, ProcInfo, PROC, CUSTOM, true, MultiElement>
   {
   public:
+
+#if defined(_DEVICE)
+
     __device__ __inline__
     static void call(Q* queue, void* data, int numData, uint* shared)
     {
       if(threadIdx_x < numData)
         PROC :: template execute<Q, Context<PROC::NumThreads, MultiElement, CUSTOM> >(threadIdx_x, numData, queue, reinterpret_cast<typename PROC::ExpectedData*>(data), shared);
     }
+
+#endif
+
   };
 
   
@@ -158,7 +181,10 @@ namespace Megakernel
     Q* q;
     void* execData;
     uint* s_data;
-	 int hasResult;
+    int hasResult;
+
+#if defined(_DEVICE)
+
     __inline__ __device__ ProcCallCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data) { }
     template<class TProcedure, class CUSTOM>
     __device__ __inline__ bool visit()
@@ -170,6 +196,9 @@ namespace Megakernel
       }
       return false;
     }
+
+#endif
+
   };
 
   template<class Q, class ProcInfo, bool MultiElement>
@@ -181,6 +210,9 @@ namespace Megakernel
     void* execData;
     uint* s_data;
     int hasResult;
+
+#if defined(_DEVICE)
+
     __inline__ __device__ ProcCallNoCopyVisitor(Q* q, int *execproc, void * execData, uint* s_data, const uint4& sharedMem, int hasResult ) : execproc(execproc), sharedMem(sharedMem), q(q), execData(execData), s_data(s_data), hasResult(hasResult) { }
     template<class TProcedure, class CUSTOM>
     __device__ __inline__ bool visit()
@@ -194,6 +226,9 @@ namespace Megakernel
       }
       return false;
     }
+
+#endif
+
   };
 
   #define PROCCALLNOCOPYPART(LAUNCHNUM) \
@@ -225,6 +260,8 @@ namespace Megakernel
   PROCCALLNOCOPYPART(2)
   PROCCALLNOCOPYPART(3)
 
+#if defined(_DEVICE)
+
 #undef PROCCALLNOCOPYPART
 
 #if defined(_CUDA)
@@ -234,6 +271,8 @@ namespace Megakernel
   extern __device__ int* maxConcurrentBlocks();
   extern __device__ int* maxConcurrentBlockEvalDone();
 
+#endif
+
   template<class Q, MegakernelStopCriteria StopCriteria, bool Maintainer>
   class MaintainerCaller;
 
@@ -241,6 +280,9 @@ namespace Megakernel
   class MaintainerCaller<Q, StopCriteria, true>
   {
   public:
+
+#if defined(_DEVICE)
+
     static __inline__ __device__ bool RunMaintainer(Q* q, int* shutdown)
     {
       
@@ -274,15 +316,24 @@ namespace Megakernel
       }
       return false;
     }
+
+#endif
+
   };
   template<class Q, MegakernelStopCriteria StopCriteria>
   class MaintainerCaller<Q, StopCriteria, false>
   {
   public:
+
+#if defined(_DEVICE)
+
     static __inline__ __device__ bool RunMaintainer(Q* q, int* shutdown)
     {
       return false;
     }
+
+#endif
+
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool tripleCall>
@@ -292,6 +343,9 @@ namespace Megakernel
   class MegakernelLogics<Q, PROCINFO, CUSTOM, true, MultiElement, tripleCall>
   {
   public:
+
+#if defined(_DEVICE)
+
     static  __device__ __inline__ int  run(Q* q, uint4 sharedMemDist)
     {
       extern __shared__ uint s_data[];
@@ -309,12 +363,18 @@ namespace Megakernel
       }
       return hasResult;
     }
+
+#endif
+
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool MultiElement>
   class MegakernelLogics<Q, PROCINFO, CUSTOM, false, MultiElement, false>
   {
   public:
+
+#if defined(_DEVICE)
+
     static  __device__ __inline__ int  run(Q* q, uint4 sharedMemDist)
     {
       extern __shared__ uint s_data[];
@@ -332,12 +392,18 @@ namespace Megakernel
       }
       return hasResult;
     }
+
+#endif
+
   };
 
   template<class Q, class PROCINFO, class CUSTOM, bool MultiElement>
   class MegakernelLogics<Q, PROCINFO, CUSTOM, false, MultiElement, true>
   {
   public:
+
+#if defined(_DEVICE)
+
     static  __device__ __inline__ int  run(Q* q, uint4 sharedMemDist)
     {
       extern __shared__ uint s_data[];
@@ -372,6 +438,9 @@ namespace Megakernel
 
       return hasResult;
     }
+
+#endif
+
   };
 
   template<unsigned long long StaticLimit, bool Dynamic>
@@ -380,17 +449,26 @@ namespace Megakernel
   template<>
   struct TimeLimiter<0, false>
   {
+
+#if defined(_DEVICE)
+
     __device__ __inline__ TimeLimiter() { }
     __device__ __inline__ bool stop(int tval)
     {
       return false;
     }
+
+#endif
+
   };
 
   template<unsigned long long StaticLimit>
   struct TimeLimiter<StaticLimit, false>
   {
     unsigned long long  TimeLimiter_start;
+
+#if defined(_DEVICE)
+
     __device__ __inline__ TimeLimiter() 
     {
       if(threadIdx_x == 0)
@@ -400,12 +478,18 @@ namespace Megakernel
     {
       return (clock64() - TimeLimiter_start) > StaticLimit;
     }
+
+#endif
+
   };
 
   template<>
   struct TimeLimiter<0, true>
   {
     unsigned long long  TimeLimiter_start;
+
+#if defined(_DEVICE)
+
     __device__ __inline__ TimeLimiter() 
     {
       if(threadIdx_x == 0)
@@ -415,7 +499,12 @@ namespace Megakernel
     {
       return (clock64() - TimeLimiter_start)/1024 > tval;
     }
+
+#endif
+
   };
+
+#if defined(_DEVICE)
 
   template<class Q, class PROCINFO, class CUSTOM, bool CopyToShared, bool MultiElement, bool Maintainer, class TimeLimiter, MegakernelStopCriteria StopCriteria>
   __global__ void megakernel(Q* q, uint4 sharedMemDist, int t, int* shutdown)
@@ -527,8 +616,7 @@ namespace Megakernel
     q->workerEnd();
   }
 
-
-
+#endif
 
   template<template <class> class QUEUE, class PROCINFO, class ApplicationContext = void, int maxShared = 16336, bool LoadToShared = true, bool MultiElement = true, bool StaticTimelimit  = false, bool DynamicTimelimit = false>
   class TechniqueCore
@@ -589,12 +677,12 @@ namespace Megakernel
 #if defined(_CUDA)
         CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlocksVar, &nblocks, sizeof(int)));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
 #if defined(_CUDA)
         CHECKED_CALL(cudaMemcpyToSymbol(maxConcurrentBlockEvalDoneVar, &nblocks, sizeof(int)));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
         megakernel<TQueue, TProcInfo, ApplicationContext, LoadToShared, MultiElement, (TQueue::globalMaintainMinThreads > 0)?true:false, TimeLimiter<StaticTimelimit?1000:0, DynamicTimelimit>, MegakernelStopCriteria::EmptyQueue> <<<512, technique.blockSize[Phase], technique.sharedMemSum[Phase]>>> (0, technique.sharedMem[Phase], 0, NULL);
 
@@ -603,7 +691,7 @@ namespace Megakernel
 #if defined(_CUDA)
         CHECKED_CALL(cudaMemcpyFromSymbol(&nblocks, maxConcurrentBlocksVar, sizeof(int)));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
         technique.blocks[Phase] = nblocks;
         //std::cout << "blocks: " << blocks << std::endl;
@@ -620,12 +708,12 @@ namespace Megakernel
 #if defined(_CUDA)
       CHECKED_CALL(cudaMemcpyToSymbolAsync(doneCounterVar, &null, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
 #if defined(_CUDA)
       CHECKED_CALL(cudaMemcpyToSymbolAsync(endCounterVar, &magic, sizeof(int), 0, cudaMemcpyHostToDevice, stream));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
     }
 
@@ -643,12 +731,12 @@ namespace Megakernel
 #if defined(_CUDA)
       CHECKED_CALL(cudaMemcpyToSymbol(doneCounterVar, &null, sizeof(int)));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
 #if defined(_CUDA)
       CHECKED_CALL(cudaMemcpyToSymbol(endCounterVar, &magic, sizeof(int)));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
 
       initQueue<Q> <<<512, 512>>>(q->getDeviceAddress());

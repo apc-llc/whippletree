@@ -38,7 +38,12 @@
 
 namespace SegmentedStorage
 {
+
+#if defined(_DEVICE)
+
   extern __device__ void** storage();
+
+#endif
 
   template<int TStorageSize, int TBlockSize>
   class Storage
@@ -60,6 +65,8 @@ namespace SegmentedStorage
     unsigned int front, back;
     volatile int available[NumBlocks];
   public:
+
+#if defined(_DEVICE)
     
     __inline__ __device__ void init()
     {
@@ -115,9 +122,14 @@ namespace SegmentedStorage
     {
       return reinterpret_cast<Storage<StorageSize, BlockSize>*>(*storage());
     }
+
+#endif
+
   };
 
   extern void* StoragePointer;
+
+#if defined(_DEVICE)
 
   template<int StorageSize, int BlockSize>
   __global__ void initStorage(void* data)
@@ -126,6 +138,8 @@ namespace SegmentedStorage
     Storage<StorageSize, BlockSize>* s = reinterpret_cast<Storage<StorageSize, BlockSize>*>(data);
     s->init();
   }
+
+#endif
 
   template<class Storage>
   void reinitStorage()
@@ -149,6 +163,9 @@ namespace SegmentedStorage
       volatile QueueData_T storage[ElementsPerBlock];
       volatile QueueAddtionalData_T additionalStorage[ElementsPerBlock];
       int available;
+
+#if defined(_DEVICE)
+
       __inline__ __device__ void init()
       {
         *(volatile int*)(&available) = ElementsPerBlock;
@@ -160,6 +177,9 @@ namespace SegmentedStorage
       {
         return atomicSub(&available, num) <= num;
       }
+
+#endif
+
     };
 
     template<class QueueData_T>
@@ -167,6 +187,9 @@ namespace SegmentedStorage
     {
       volatile QueueData_T storage[ElementsPerBlock];
       int available;
+
+#if defined(_DEVICE)
+
       __inline__ __device__ void init()
       {
         *(volatile int*)(&available) = ElementsPerBlock;
@@ -178,9 +201,14 @@ namespace SegmentedStorage
       {
         return  atomicSub(&available, num) <= num;
       }
+
+#endif
+
     };
 
     volatile int useBlocks[MaxBlocks];
+
+#if defined(_DEVICE)
 
     template<class TMyBlock, int Smaller>
      __inline__ __device__  TMyBlock* acquireBlock(int pos)
@@ -262,6 +290,8 @@ namespace SegmentedStorage
       }
     }
 
+#endif
+
   public:
 
    
@@ -270,6 +300,8 @@ namespace SegmentedStorage
     {
       return "SharedStorage";
     }
+
+#if defined(_DEVICE)
   
     __inline__ __device__ void init()
     {
@@ -281,6 +313,8 @@ namespace SegmentedStorage
         printf("maxblocks: %d\n",MaxBlocks);
 #endif
     }
+
+#endif
 
   };
 
@@ -297,6 +331,8 @@ namespace SegmentedStorage
     typedef typename Base::MyBlock MyBlock;
 
   public:
+
+#if defined(_DEVICE)
 
     template<class T>
     __inline__ __device__ uint prepareData(T data, TAdditionalData additionalData)
@@ -358,6 +394,9 @@ namespace SegmentedStorage
     {
       Base:: template storageFinishRead<MyBlock>(pos);
     }
+
+#endif
+
   };
 
   template<uint TElementSize, uint TQueueSize, class SharedStorage>
@@ -371,6 +410,8 @@ namespace SegmentedStorage
     typedef typename Base::MyBlock MyBlock;
 
   public:
+
+#if defined(_DEVICE)
 
     template<class T>
     __inline__ __device__ uint prepareData(T data)
@@ -432,6 +473,9 @@ namespace SegmentedStorage
     {
       Base:: template storageFinishRead<MyBlock>(pos);
     }
+
+#endif
+
   };
 }
 

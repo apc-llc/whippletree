@@ -52,6 +52,9 @@
 namespace KernelLaunches
 {
   static const int MaxProcs = 1024;
+
+#if defined(_DEVICE)
+
 #if defined(_CUDA)
   extern __device__ int queueCountsVar[MaxProcs];
 #endif
@@ -122,6 +125,8 @@ namespace KernelLaunches
     __syncthreads();
     q-> template finishRead<PROC>(id, num);
   }
+
+#endif
 
   template<class PROC, class CUSTOM, class Q, bool NoCopy>
   int launchKernel(Q* q, int elements, cudaStream_t stream, bool multipleItemsAtOnce)
@@ -236,7 +241,7 @@ namespace KernelLaunches
 #if defined(_CUDA)
           CHECKED_CALL(cudaMemcpyFromSymbol(&procCounts[0], queueCountsVar, sizeof(int)*numProcs));
 #elif defined(_OPENCL)
-#error "Implement in OpenCL"
+//  TODO Implement in OpenCL
 #endif
           work = 0;
 

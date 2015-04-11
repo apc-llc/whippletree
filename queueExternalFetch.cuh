@@ -44,6 +44,8 @@ class QueueExternalFetch : public ::BasicQueue<void>, protected QueueStorage<TEl
   int maxcount;
 public:
 
+#if defined(_DEVICE)
+
   __inline__ __device__ void init()
   {
     QueueStorage<TElementSize, void, TQueueSize>::init();
@@ -149,4 +151,7 @@ public:
     count = 0;
     readCount = 0;
   }
+
+#endif
+
 };
