@@ -20,9 +20,8 @@ endif()
 set(CUDA_NVCC_FLAGS "-use_fast_math")
 
 # On Linux the code requires CUDA compiler with C++11 support (CUDA 6.5RC or later).
-if (NOT WIN32)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-std=c++11;")
-endif ()
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-std=c++11;")
+
 # CC 2.0 is always required for printf
 #set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20;")
 
