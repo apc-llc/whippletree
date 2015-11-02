@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <string>
+
 #if defined(_DEVICE)
 
 extern __device__ volatile float* BigData();
