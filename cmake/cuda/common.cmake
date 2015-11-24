@@ -22,6 +22,8 @@ set(CUDA_NVCC_FLAGS "-use_fast_math")
 # On Linux the code requires CUDA compiler with C++11 support (CUDA 6.5RC or later).
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-std=c++11;")
 
+set(CUDA_MAXRREGCOUNT "-maxrregcount=63;")
+
 # CC 2.0 is always required for printf
 #set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_20,code=sm_20;")
 
@@ -29,13 +31,15 @@ if(CUDA_BUILD_CC30)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_30,code=sm_30;")
 endif()
 if(CUDA_BUILD_CC35 OR CUDA_BUILD_CC35_NODYN)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35;-maxrregcount=63;")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_35,code=sm_35;${CUDA_MAXRREGCOUNT}")
+	set(CUDA_MAXRREGCOUNT "")
 endif()
 if(CUDA_BUILD_CC50)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_50,code=sm_50;")
 endif()
 if(CUDA_BUILD_CC50 OR CUDA_BUILD_CC50_NODYN)
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_50,code=sm_50;-maxrregcount=63;")
+	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_50,code=sm_50;${CUDA_MAXRREGCOUNT}")
+	set(CUDA_MAXRREGCOUNT "")
 endif()
 if(CUDA_BUILD_INFO)
 	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-keep;--ptxas-options=-v;-lineinfo")
