@@ -9,7 +9,7 @@
 
 namespace tasman
 {
-	typedef void (*DynamicTaskFunction)(int threadId, int numThreads, void* data, volatile uint* shared);
+	typedef void (*DynamicTaskFunction)(int threadId, int numThreads, void* data, volatile unsigned int* shared);
 
 	struct DynamicTaskInfo;
 }
